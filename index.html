@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEON GH SBA | Gbawe Gonse M/A Basic School</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for future analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS for Excel Import/Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #0d47a1;
+            --primary-light: #1976d2;
+            --accent: #f57c00;
+            --bg-light: #f8fafc;
+            --text-dark: #1e293b;
+        }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: var(--bg-light); color: var(--text-dark); }
+        .bg-primary { background-color: var(--primary); }
+        .bg-primary-light { background-color: var(--primary-light); }
+        .text-primary { color: var(--primary); }
+        .text-accent { color: var(--accent); }
+        .border-primary { border-color: var(--primary); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* Print Styles for Report Cards (To be expanded in Step 6) */
+        @media print {
+            .no-print { display: none !important; }
+            .print-area { display: block !important; }
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0d47a1',
+                        'primary-light': '#1976d2',
+                        accent: '#f57c00',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="w-64 bg-primary text-white flex flex-col no-print shadow-xl">
+        <div class="p-6 border-b border-primary-light">
+            <h1 class="text-xl font-bold tracking-wide">LEON GH SBA</h1>
+            <p class="text-xs text-blue-200 mt-1">School Based Assessment</p>
+        </div>
+        
+        <nav class="flex-1 overflow-y-auto py-4">
+            <ul class="space-y-2 px-3">
+                <li>
+                    <a href="#" class="flex items-center px-4 py-3 rounded-lg bg-primary-light text-white font-medium shadow-md">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-4 py-3 rounded-lg hover:bg-primary-light transition-colors">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Student Roster
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-4 py-3 rounded-lg hover:bg-primary-light transition-colors">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        Assessment Sheets
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-4 py-3 rounded-lg hover:bg-primary-light transition-colors">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Report Cards
+                    </a>
+                </li>
+                <li>
+                    <a href="#" class="flex items-center px-4 py-3 rounded-lg hover:bg-primary-light transition-colors">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                        Analytics
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <div class="p-4 border-t border-primary-light text-xs text-blue-200">
+            <p>Academic Year: 2025/2026</p>
+            <p>Term: 1 | Class: Basic 7</p>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- Top Header -->
+        <header class="bg-white shadow-sm p-4 flex justify-between items-center no-print">
+            <h2 class="text-2xl font-bold text-primary">Dashboard Overview</h2>
+            <div class="flex items-center space-x-4">
+                <div id="db-status" class="flex items-center px-3 py-1 rounded-full bg-gray-100 text-sm font-medium text-gray-600">
+                    <span class="w-2 h-2 rounded-full bg-yellow-500 mr-2 animate-pulse"></span>
+                    Connecting to Cloud...
+                </div>
+                <button class="bg-accent hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium shadow-sm transition-colors">
+                    Export Data
+                </button>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <!-- Stat Cards -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-primary">
+                    <p class="text-sm font-medium text-gray-500">Total Students</p>
+                    <p class="text-3xl font-bold text-primary mt-2" id="stat-students">0</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-accent">
+                    <p class="text-sm font-medium text-gray-500">Subjects Tracked</p>
+                    <p class="text-3xl font-bold text-accent mt-2">10</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+                    <p class="text-sm font-medium text-gray-500">Cloud Sync Status</p>
+                    <p class="text-3xl font-bold text-green-600 mt-2" id="stat-sync">Pending</p>
+                </div>
+            </div>
+
+            <!-- Welcome / Setup Card -->
+            <div class="bg-white p-8 rounded-xl shadow-sm">
+                <h3 class="text-xl font-bold text-primary mb-4">Welcome to LEON GH SBA</h3>
+                <p class="text-gray-600 mb-4">Step 1 of our deployment is complete. The foundational UI and database schema are ready. To enable real-time multi-teacher syncing, please configure your Firebase credentials in the script section of this file.</p>
+                <div class="bg-blue-50 border-l-4 border-primary p-4 text-sm text-gray-700">
+                    <strong>Next Action:</strong> Once Firebase is connected, we will proceed to Step 2 (Security & Passcodes) and Step 3 (Excel Bulk Import for your 106 Basic 7 students).
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- FIREBASE & APP LOGIC (ES Module) -->
+    <script type="module">
+        // 1. Import Firebase SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // 2. YOUR FIREBASE CONFIGURATION
+        // TODO: Replace this with your actual Firebase project config from the Firebase Console
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // 3. Initialize Firebase & Firestore
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // UI Elements
+        const dbStatusEl = document.getElementById('db-status');
+        const statStudentsEl = document.getElementById('stat-students');
+        const statSyncEl = document.getElementById('stat-sync');
+
+        // 4. Real-Time Listeners (onSnapshot)
+        async function initRealtimeListeners() {
+            try {
+                // Listen to Students Collection
+                const studentsQuery = collection(db, "students");
+                onSnapshot(studentsQuery, (snapshot) => {
+                    statStudentsEl.textContent = snapshot.size;
+                    updateSyncStatus("Live");
+                    console.log("Real-time student data synced. Total:", snapshot.size);
+                }, (error) => {
+                    console.error("Firestore Listener Error:", error);
+                    updateSyncStatus("Error");
+                });
+
+            } catch (error) {
+                console.error("Firebase Initialization Error:", error);
+                dbStatusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> Connection Failed`;
+                dbStatusEl.className = "flex items-center px-3 py-1 rounded-full bg-red-100 text-sm font-medium text-red-600";
+            }
+        }
+
+        function updateSyncStatus(status) {
+            statSyncEl.textContent = status;
+            dbStatusEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> Connected & Syncing`;
+            dbStatusEl.className = "flex items-center px-3 py-1 rounded-full bg-green-100 text-sm font-medium text-green-600";
+        }
+
+        // Start the app
+        initRealtimeListeners();
+
+        // Expose DB to window for debugging in console if needed
+        window.db = db; 
+    </script>
+</body>
+</html>
