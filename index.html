@@ -110,7 +110,6 @@
                             <p class="text-sm text-gray-500 mt-1">Manage your class list. Download the template, fill it, and import.</p>
                         </div>
                         <div class="flex flex-wrap gap-3">
-                            <!-- NEW DOWNLOAD TEMPLATE BUTTON -->
                             <button onclick="downloadRosterTemplate()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm transition-colors">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                                 Download Template
@@ -137,7 +136,7 @@
                         <p class="text-sm text-gray-400 mt-2">Click "Download Template" to get the blank Excel file, fill it out, and use "Import Excel" to upload.</p>
                     </div>
 
-                    <!-- Student Table (Hidden until data is loaded) -->
+                    <!-- Student Table -->
                     <div id="roster-table-container" class="hidden overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead>
@@ -182,7 +181,7 @@
                 </div>
                 <div id="assessment-unlocked" class="hidden bg-white p-8 rounded-xl shadow-sm text-center">
                     <h3 class="text-2xl font-bold text-green-600 mb-4">Assessment Sheet Unlocked!</h3>
-                    <p class="text-gray-600">The grading table and input fields will be built here in Stage 3.</p>
+                    <p class="text-gray-600">The grading table and input fields will be built here in the next step.</p>
                     <button onclick="lockAssessment()" class="mt-4 text-red-500 underline">Lock</button>
                 </div>
             </div>
@@ -195,6 +194,9 @@
     </main>
 
     <script>
+        // Global State
+        let studentsData = [];
+
         // 1. Navigation Logic
         function switchView(viewName, element) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
@@ -231,24 +233,20 @@
             const selectedClass = document.getElementById('class-selector').value;
             document.getElementById('sidebar-class-display').textContent = `Term: 1 | Class: ${selectedClass}`;
             document.getElementById('roster-title').textContent = `${selectedClass} Student Roster`;
+            // In a full app, this would fetch class-specific data from Firebase
         }
 
-        // 4. Roster Management & Excel Template Logic
+        // 4. Roster Management & Excel Import Logic
         function downloadRosterTemplate() {
             const selectedClass = document.getElementById('class-selector').value;
-            // Create header row
             const templateData = [
                 ["StudentID", "Name", "Gender"],
-                ["GMA3/B7/25/001", "ADUBEA GRACE", "Female"], // Example row
-                ["GMA3/B7/25/002", "AGBENORSI ESTHER", "Female"] // Example row
+                ["GMA3/B7/25/001", "ADUBEA GRACE", "Female"],
+                ["GMA3/B7/25/052", "ABUDU MOHAMMED", "Male"]
             ];
-            
-            // Generate worksheet
             const ws = XLSX.utils.aoa_to_sheet(templateData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Roster Template");
-            
-            // Download file
             XLSX.writeFile(wb, `LEON_SBA_Roster_Template_${selectedClass.replace(' ', '_')}.xlsx`);
         }
 
@@ -260,13 +258,83 @@
             alert("Manual Add Student form will open here in the next step.");
         }
 
+        // NEW: Handle File Select & Parse Excel
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
             
-            alert(`File selected: ${file.name}. In the next step, we will write the logic to read this file and populate the table!`);
-            // Reset input so the same file can be selected again if needed
-            event.target.value = ''; 
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                
+                // Read the first sheet
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                
+                // Map and clean the data
+                studentsData = jsonData.map(row => ({
+                    id: row['StudentID'] || row['Student ID'] || '',
+                    name: row['Name'] || row['NAME'] || '',
+                    gender: row['Gender'] || row['GENDER'] || ''
+                })).filter(s => s.id && s.name); // Remove empty rows
+
+                renderRoster();
+                updateDashboard();
+                alert(`Successfully imported ${studentsData.length} students!`);
+            };
+            reader.readAsArrayBuffer(file);
+            event.target.value = ''; // Reset input
+        }
+
+        // NEW: Render the table dynamically
+        function renderRoster() {
+            const tbody = document.getElementById('student-table-body');
+            const emptyState = document.getElementById('roster-empty-state');
+            const tableContainer = document.getElementById('roster-table-container');
+            
+            tbody.innerHTML = '';
+            
+            if (studentsData.length === 0) {
+                emptyState.classList.remove('hidden');
+                tableContainer.classList.add('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            tableContainer.classList.remove('hidden');
+            
+            studentsData.forEach((s, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b hover:bg-gray-50';
+                const genderClass = s.gender.toLowerCase() === 'female' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700';
+                
+                tr.innerHTML = `
+                    <td class="p-4 font-mono text-xs text-gray-500">${s.id}</td>
+                    <td class="p-4 font-medium text-gray-800">${s.name}</td>
+                    <td class="p-4"><span class="px-2 py-1 rounded text-xs ${genderClass}">${s.gender}</span></td>
+                    <td class="p-4"><span class="text-green-600 text-xs font-bold">● Active</span></td>
+                    <td class="p-4 text-right">
+                        <button onclick="deleteStudent(${index})" class="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // NEW: Delete a student
+        function deleteStudent(index) {
+            if(confirm('Are you sure you want to remove this student from the roster?')) {
+                studentsData.splice(index, 1);
+                renderRoster();
+                updateDashboard();
+            }
+        }
+
+        // NEW: Update Dashboard Counter
+        function updateDashboard() {
+            document.getElementById('dash-total-students').textContent = studentsData.length;
         }
     </script>
 </body>
