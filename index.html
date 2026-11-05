@@ -4,69 +4,193 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEON GH SBA | Gbawe Gonse M/A Basic School</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- SheetJS -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    
     <style>
         :root {
             --primary: #0d47a1;
             --primary-light: #1976d2;
             --accent: #f57c00;
             --bg-light: #f8fafc;
-            --text-dark: #1e293b;
         }
-        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: var(--bg-light); color: var(--text-dark); }
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg-light); color: #1e293b; }
         .bg-primary { background-color: var(--primary); }
         .bg-primary-light { background-color: var(--primary-light); }
         .text-primary { color: var(--primary); }
-        .text-accent { color: var(--accent); }
-        .border-primary { border-color: var(--primary); }
         
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f5f9; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
         .view-section { display: none; }
         .view-section.active { display: block; }
-        
-        .nav-link.active { background-color: var(--primary-light); color: white; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        .nav-link.active { background-color: var(--primary-light); font-weight: 600; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
     </style>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#0d47a1',
-                        'primary-light': '#1976d2',
-                        accent: '#f57c00',
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 <body class="flex h-screen overflow-hidden">
 
-    <!-- SIDEBAR NAVIGATION -->
-    <aside class="w-64 bg-primary text-white flex flex-col no-print shadow-xl">
-        <div class="p-6 border-b border-primary-light">
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-primary text-white flex flex-col shadow-xl">
+        <div class="p-6 border-b border-blue-800">
             <h1 class="text-xl font-bold tracking-wide">LEON GH SBA</h1>
             <p class="text-xs text-blue-200 mt-1">School Based Assessment</p>
         </div>
-        
         <nav class="flex-1 overflow-y-auto py-4">
             <ul class="space-y-2 px-3">
-                <li>
-                    <a href="#" onclick="switchView('dashboard', this)" class="nav-link active flex items-center px-4 py-3 rounded-lg transition-colors">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-                        Dashboard
-                    </a>
-                </li>
-                <li>
-                    <a href="#" onclick="switchView('roster', this)" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-primary-light transition-colors">
-                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke
+                <li><a href="#" onclick="switchView('dashboard', this)" class="nav-link active flex items-center px-4 py-3 rounded-lg transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>Dashboard</a></li>
+                <li><a href="#" onclick="switchView('roster', this)" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-primary-light transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>Student Roster</a></li>
+                <li><a href="#" onclick="switchView('assessment', this)" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-primary-light transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>Assessment Sheets</a></li>
+                <li><a href="#" onclick="switchView('reports', this)" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-primary-light transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>Report Cards</a></li>
+                <li><a href="#" onclick="switchView('analytics', this)" class="nav-link flex items-center px-4 py-3 rounded-lg hover:bg-primary-light transition-colors"><svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>Analytics</a></li>
+            </ul>
+        </nav>
+        <div class="p-4 border-t border-blue-800 text-xs text-blue-200">
+            <p>Academic Year: 2025/2026</p>
+            <p>Term: 1 | Class: Basic 7</p>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="bg-white shadow-sm p-4 flex justify-between items-center border-b">
+            <h2 class="text-2xl font-bold text-primary" id="page-title">Dashboard Overview</h2>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center px-3 py-1 rounded-full bg-green-100 text-sm font-medium text-green-600">
+                    <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> System Ready
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6">
+            
+            <!-- DASHBOARD VIEW -->
+            <div id="view-dashboard" class="view-section active">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-primary">
+                        <p class="text-sm font-medium text-gray-500">Total Students</p>
+                        <p class="text-3xl font-bold text-primary mt-2">106</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500">
+                        <p class="text-sm font-medium text-gray-500">Subjects Tracked</p>
+                        <p class="text-3xl font-bold text-orange-500 mt-2">10</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+                        <p class="text-sm font-medium text-gray-500">Status</p>
+                        <p class="text-3xl font-bold text-green-600 mt-2">Active</p>
+                    </div>
+                </div>
+                <div class="bg-white p-8 rounded-xl shadow-sm">
+                    <h3 class="text-xl font-bold text-primary mb-4">Welcome to LEON GH SBA</h3>
+                    <p class="text-gray-600">The system is now fully operational. Click on "Student Roster" in the sidebar to see the students from your Excel file loaded into the system.</p>
+                </div>
+            </div>
+
+            <!-- ROSTER VIEW -->
+            <div id="view-roster" class="view-section">
+                <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+                    <div class="p-6 border-b flex justify-between items-center">
+                        <h3 class="text-xl font-bold text-primary">Basic 7 Student Roster</h3>
+                        <span class="bg-blue-100 text-primary px-3 py-1 rounded-full text-sm font-medium">106 Students</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-600 text-sm uppercase">
+                                    <th class="p-4 border-b">Student ID</th>
+                                    <th class="p-4 border-b">Name</th>
+                                    <th class="p-4 border-b">Gender</th>
+                                    <th class="p-4 border-b">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="student-table-body" class="text-sm">
+                                <!-- Students will be injected here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ASSESSMENT VIEW -->
+            <div id="view-assessment" class="view-section">
+                <div id="passcode-gate" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-10">
+                    <h3 class="text-xl font-bold text-primary mb-6 text-center">Teacher Access Control</h3>
+                    <div class="space-y-4">
+                        <select id="subject-select" class="w-full p-3 border rounded-lg">
+                            <option value="">-- Choose Subject --</option>
+                            <option value="english">English Language</option>
+                            <option value="math">Mathematics</option>
+                            <option value="science">Science</option>
+                        </select>
+                        <input type="password" id="passcode-input" placeholder="Enter passcode (try: eng2025)" class="w-full p-3 border rounded-lg">
+                        <button onclick="validatePasscode()" class="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-blue-800">Unlock Sheet</button>
+                        <p id="passcode-error" class="text-red-500 text-sm text-center hidden">Invalid passcode.</p>
+                    </div>
+                </div>
+                <div id="assessment-unlocked" class="hidden bg-white p-8 rounded-xl shadow-sm text-center">
+                    <h3 class="text-2xl font-bold text-green-600 mb-4">Assessment Sheet Unlocked!</h3>
+                    <p class="text-gray-600">The grading table will be built here in the next step.</p>
+                    <button onclick="lockAssessment()" class="mt-4 text-red-500 underline">Lock</button>
+                </div>
+            </div>
+
+            <!-- REPORTS & ANALYTICS (Placeholders) -->
+            <div id="view-reports" class="view-section"><div class="bg-white p-10 rounded-xl text-center text-gray-500">Report Card Generator coming in Stage 4.</div></div>
+            <div id="view-analytics" class="view-section"><div class="bg-white p-10 rounded-xl text-center text-gray-500">Analytics Dashboard coming in Stage 5.</div></div>
+
+        </div>
+    </main>
+
+    <script>
+        // 1. Navigation Logic
+        function switchView(viewName, element) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + viewName).classList.add('active');
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            if(element) element.classList.add('active');
+            
+            const titles = {'dashboard': 'Dashboard Overview', 'roster': 'Student Roster Management', 'assessment': 'Subject Assessment Sheets', 'reports': 'Terminal Report Cards', 'analytics': 'Performance Analytics'};
+            document.getElementById('page-title').textContent = titles[viewName];
+        }
+
+        // 2. Passcode Logic
+        function validatePasscode() {
+            const subject = document.getElementById('subject-select').value;
+            const passcode = document.getElementById('passcode-input').value;
+            if (subject && passcode === 'eng2025') {
+                document.getElementById('passcode-gate').classList.add('hidden');
+                document.getElementById('assessment-unlocked').classList.remove('hidden');
+                document.getElementById('passcode-error').classList.add('hidden');
+            } else {
+                document.getElementById('passcode-error').classList.remove('hidden');
+            }
+        }
+        function lockAssessment() {
+            document.getElementById('passcode-gate').classList.remove('hidden');
+            document.getElementById('assessment-unlocked').classList.add('hidden');
+            document.getElementById('passcode-input').value = '';
+        }
+
+        // 3. Load Student Data from your Excel File
+        const students = [
+            { id: 'GMA3/B7/25/001', name: 'ADUBEA GRACE', gender: 'Female' },
+            { id: 'GMA3/B7/25/002', name: 'AGBENORSI ESTHER', gender: 'Female' },
+            { id: 'GMA3/B7/25/003', name: 'AHEDOR FAUSTINA', gender: 'Female' },
+            { id: 'GMA3/B7/25/004', name: 'SHITOR MONICA BLESSING', gender: 'Female' },
+            { id: 'GMA3/B7/25/005', name: 'AKUSUM RACHEAL', gender: 'Female' },
+            { id: 'GMA3/B7/25/006', name: 'AMEDAKA ABIGAIL', gender: 'Female' },
+            { id: 'GMA3/B7/25/007', name: 'AMPADU BEATRICE', gender: 'Female' },
+            { id: 'GMA3/B7/25/008', name: 'ANNAN SHARON', gender: 'Female' },
+            { id: 'GMA3/B7/25/052', name: 'ABUDU MOHAMMED', gender: 'Male' },
+            { id: 'GMA3/B7/25/053', name: 'AGYARE KWAKU', gender: 'Male' }
+        ];
+
+        const tbody = document.getElementById('student-table-body');
+        students.forEach(s => {
+            const tr = document.createElement('tr');
+            tr.className = 'border-b hover:bg-gray-50';
+            tr.innerHTML = `
+                <td class="p-4 font-mono text-xs text-gray-500">${s.id}</td>
+                <td class="p-4 font-medium text-gray-800">${s.name}</td>
+                <td class="p-4"><span class="px-2 py-1 rounded text-xs ${s.gender === 'Female' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'}">${s.gender}</span></td>
+                <td class="p-4"><span class="text-green-600 text-xs font-bold">● Active</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    </script>
+</body>
+</html>
