@@ -83,7 +83,7 @@
             <div id="view-dashboard" class="view-section active">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-primary">
-                        <p class="text-sm font-medium text-gray-500">Total Students</p>
+                        <p class="text-sm font-medium text-gray-500">Total Students (<span id="dash-class-name">Basic 7</span>)</p>
                         <p class="text-3xl font-bold text-primary mt-2" id="dash-total-students">0</p>
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500">
@@ -97,7 +97,7 @@
                 </div>
                 <div class="bg-white p-8 rounded-xl shadow-sm">
                     <h3 class="text-xl font-bold text-primary mb-4">Welcome to LEON GH SBA</h3>
-                    <p class="text-gray-600">The system is fully operational. Navigate to <strong>Student Roster</strong> to download your class template, fill it out, and upload it.</p>
+                    <p class="text-gray-600">The system now supports multiple classes. Data uploaded to "Basic 7" will be saved separately from "Basic 8".</p>
                 </div>
             </div>
 
@@ -194,8 +194,9 @@
     </main>
 
     <script>
-        // Global State
-        let studentsData = [];
+        // Global State for Multi-Class Support
+        let allStudentsData = {}; // Object to hold arrays for each class
+        let currentClass = "Basic 7";
 
         // 1. Navigation Logic
         function switchView(viewName, element) {
@@ -228,17 +229,20 @@
             document.getElementById('passcode-input').value = '';
         }
 
-        // 3. Class Selector Logic
+        // 3. Class Selector Logic (FIXED)
         function updateClass() {
-            const selectedClass = document.getElementById('class-selector').value;
-            document.getElementById('sidebar-class-display').textContent = `Term: 1 | Class: ${selectedClass}`;
-            document.getElementById('roster-title').textContent = `${selectedClass} Student Roster`;
-            // In a full app, this would fetch class-specific data from Firebase
+            currentClass = document.getElementById('class-selector').value;
+            document.getElementById('sidebar-class-display').textContent = `Term: 1 | Class: ${currentClass}`;
+            document.getElementById('roster-title').textContent = `${currentClass} Student Roster`;
+            document.getElementById('dash-class-name').textContent = currentClass;
+            
+            // Re-render the roster and dashboard for the newly selected class
+            renderRoster();
+            updateDashboard();
         }
 
-        // 4. Roster Management & Excel Import Logic
+        // 4. Roster Management & Excel Import Logic (FIXED)
         function downloadRosterTemplate() {
-            const selectedClass = document.getElementById('class-selector').value;
             const templateData = [
                 ["StudentID", "Name", "Gender"],
                 ["GMA3/B7/25/001", "ADUBEA GRACE", "Female"],
@@ -247,7 +251,7 @@
             const ws = XLSX.utils.aoa_to_sheet(templateData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Roster Template");
-            XLSX.writeFile(wb, `LEON_SBA_Roster_Template_${selectedClass.replace(' ', '_')}.xlsx`);
+            XLSX.writeFile(wb, `LEON_SBA_Roster_Template_${currentClass.replace(' ', '_')}.xlsx`);
         }
 
         function triggerExcelImport() {
@@ -258,7 +262,6 @@
             alert("Manual Add Student form will open here in the next step.");
         }
 
-        // NEW: Handle File Select & Parse Excel
         function handleFileSelect(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -268,35 +271,38 @@
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
                 
-                // Read the first sheet
                 const firstSheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[firstSheetName];
                 const jsonData = XLSX.utils.sheet_to_json(worksheet);
                 
                 // Map and clean the data
-                studentsData = jsonData.map(row => ({
+                const parsedStudents = jsonData.map(row => ({
                     id: row['StudentID'] || row['Student ID'] || '',
                     name: row['Name'] || row['NAME'] || '',
                     gender: row['Gender'] || row['GENDER'] || ''
-                })).filter(s => s.id && s.name); // Remove empty rows
+                })).filter(s => s.id && s.name);
+
+                // SAVE TO THE SPECIFIC CLASS
+                allStudentsData[currentClass] = parsedStudents;
 
                 renderRoster();
                 updateDashboard();
-                alert(`Successfully imported ${studentsData.length} students!`);
+                alert(`Successfully imported ${parsedStudents.length} students into ${currentClass}!`);
             };
             reader.readAsArrayBuffer(file);
-            event.target.value = ''; // Reset input
+            event.target.value = '';
         }
 
-        // NEW: Render the table dynamically
         function renderRoster() {
             const tbody = document.getElementById('student-table-body');
             const emptyState = document.getElementById('roster-empty-state');
             const tableContainer = document.getElementById('roster-table-container');
             
+            // Get students for the CURRENT class only
+            const students = allStudentsData[currentClass] || [];
             tbody.innerHTML = '';
             
-            if (studentsData.length === 0) {
+            if (students.length === 0) {
                 emptyState.classList.remove('hidden');
                 tableContainer.classList.add('hidden');
                 return;
@@ -305,7 +311,7 @@
             emptyState.classList.add('hidden');
             tableContainer.classList.remove('hidden');
             
-            studentsData.forEach((s, index) => {
+            students.forEach((s, index) => {
                 const tr = document.createElement('tr');
                 tr.className = 'border-b hover:bg-gray-50';
                 const genderClass = s.gender.toLowerCase() === 'female' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700';
@@ -323,18 +329,17 @@
             });
         }
 
-        // NEW: Delete a student
         function deleteStudent(index) {
             if(confirm('Are you sure you want to remove this student from the roster?')) {
-                studentsData.splice(index, 1);
+                allStudentsData[currentClass].splice(index, 1);
                 renderRoster();
                 updateDashboard();
             }
         }
 
-        // NEW: Update Dashboard Counter
         function updateDashboard() {
-            document.getElementById('dash-total-students').textContent = studentsData.length;
+            const students = allStudentsData[currentClass] || [];
+            document.getElementById('dash-total-students').textContent = students.length;
         }
     </script>
 </body>
