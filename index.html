@@ -15,8 +15,6 @@
         .view-section { display: none; }
         .view-section.active { display: block; }
         .nav-link.active { background-color: var(--primary-light); font-weight: 600; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        
-        /* Table Input Styling */
         .score-input { width: 60px; text-align: center; border: 1px solid #e2e8f0; border-radius: 4px; padding: 4px; font-size: 0.875rem; transition: all 0.2s; }
         .score-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(13, 71, 161, 0.2); }
         .score-input.invalid { border-color: #ef4444; background-color: #fee2e2; }
@@ -62,15 +60,13 @@
                         <option value="Basic 9">Basic 9</option>
                     </select>
                 </div>
-                <div class="flex items-center px-3 py-1 rounded-full bg-green-100 text-sm font-medium text-green-600">
-                    <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> System Ready
+                <div id="sync-status" class="flex items-center px-3 py-1 rounded-full bg-yellow-100 text-sm font-medium text-yellow-700">
+                    <span class="w-2 h-2 rounded-full bg-yellow-500 mr-2 animate-pulse"></span> Connecting...
                 </div>
             </div>
         </header>
 
         <div class="flex-1 overflow-y-auto p-6">
-            
-            <!-- DASHBOARD VIEW -->
             <div id="view-dashboard" class="view-section active">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-primary">
@@ -82,17 +78,16 @@
                         <p class="text-3xl font-bold text-orange-500 mt-2">10</p>
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
-                        <p class="text-sm font-medium text-gray-500">Status</p>
-                        <p class="text-3xl font-bold text-green-600 mt-2">Active</p>
+                        <p class="text-sm font-medium text-gray-500">Cloud Status</p>
+                        <p class="text-3xl font-bold text-green-600 mt-2" id="dash-cloud-status">Syncing</p>
                     </div>
                 </div>
                 <div class="bg-white p-8 rounded-xl shadow-sm">
                     <h3 class="text-xl font-bold text-primary mb-4">Welcome to LEON GH SBA</h3>
-                    <p class="text-gray-600">Navigate to <strong>Student Roster</strong> to import your class list, then go to <strong>Assessment Sheets</strong> to enter scores.</p>
+                    <p class="text-gray-600">Your data is now permanently saved to the cloud. Try refreshing the page—your students and scores will remain!</p>
                 </div>
             </div>
 
-            <!-- ROSTER VIEW -->
             <div id="view-roster" class="view-section">
                 <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div class="p-6 border-b flex justify-between items-center flex-wrap gap-4">
@@ -134,9 +129,7 @@
                 </div>
             </div>
 
-            <!-- ASSESSMENT VIEW -->
             <div id="view-assessment" class="view-section">
-                <!-- Passcode Gate -->
                 <div id="passcode-gate" class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg mt-10">
                     <h3 class="text-xl font-bold text-primary mb-6 text-center">Teacher Access Control</h3>
                     <div class="space-y-4">
@@ -159,12 +152,11 @@
                     </div>
                 </div>
 
-                <!-- Unlocked Assessment Area -->
                 <div id="assessment-unlocked" class="hidden bg-white rounded-xl shadow-sm overflow-hidden">
                     <div class="p-6 border-b flex justify-between items-center flex-wrap gap-4 bg-gray-50">
                         <div>
                             <h3 class="text-xl font-bold text-primary" id="assessment-subject-title">Subject Assessment Sheet</h3>
-                            <p class="text-sm text-gray-500 mt-1">Enter scores. Calculations and BECE grading happen automatically.</p>
+                            <p class="text-sm text-gray-500 mt-1">Scores are automatically saved to the cloud as you type.</p>
                         </div>
                         <button onclick="lockAssessment()" class="text-red-500 hover:text-red-700 font-medium text-sm flex items-center">
                             <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -202,21 +194,64 @@
                 </div>
             </div>
 
-            <!-- REPORTS & ANALYTICS (Placeholders) -->
-            <div id="view-reports" class="view-section"><div class="bg-white p-10 rounded-xl text-center text-gray-500">Report Card Generator coming in Stage 5.</div></div>
-            <div id="view-analytics" class="view-section"><div class="bg-white p-10 rounded-xl text-center text-gray-500">Analytics Dashboard coming in Stage 6.</div></div>
-
+            <div id="view-reports" class="view-section"><div class="bg-white p-10 rounded-xl text-center text-gray-500">Report Card Generator coming in Stage 6.</div></div>
+            <div id="view-analytics" class="view-section"><div class="bg-white p-10 rounded-xl text-center text-gray-500">Analytics Dashboard coming in Stage 7.</div></div>
         </div>
     </main>
 
+    <!-- FIREBASE & APP LOGIC -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // YOUR ACTUAL FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyA7aiBx_WnbU9JzpUbkL5G6vjNnuG9zcg8",
+            authDomain: "leon-gh-sba.firebaseapp.com",
+            projectId: "leon-gh-sba",
+            storageBucket: "leon-gh-sba.firebasestorage.app",
+            messagingSenderId: "924803843159",
+            appId: "1:924803843159:web:1dbbbd6b539fa775cecf12",
+            measurementId: "G-XVQTTSXYWCQ"
+        };
+
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            updateSyncUI("Connected", "green");
+        } catch (error) {
+            console.error("Firebase Error:", error);
+            updateSyncUI("DB Error", "red");
+        }
+
+        window.db = db;
+        window.doc = doc; window.setDoc = setDoc; window.getDoc = getDoc; window.onSnapshot = onSnapshot;
+
+        function updateSyncUI(text, color) {
+            const el = document.getElementById('sync-status');
+            const dashEl = document.getElementById('dash-cloud-status');
+            if(color === 'green') {
+                el.className = "flex items-center px-3 py-1 rounded-full bg-green-100 text-sm font-medium text-green-700";
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> ${text}`;
+                if(dashEl) dashEl.textContent = "Live";
+            } else if (color === 'yellow') {
+                el.className = "flex items-center px-3 py-1 rounded-full bg-yellow-100 text-sm font-medium text-yellow-700";
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-yellow-500 mr-2 animate-pulse"></span> ${text}`;
+            } else {
+                el.className = "flex items-center px-3 py-1 rounded-full bg-red-100 text-sm font-medium text-red-700";
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500 mr-2"></span> ${text}`;
+            }
+        }
+    </script>
+
     <script>
-        // Global State
         let allStudentsData = {}; 
-        let scoresData = {}; // Structure: scoresData[class][subject][studentId] = { c1, gw, c2, proj, exam }
+        let scoresData = {}; 
         let currentClass = "Basic 7";
         let currentSubject = "";
+        let unsubscribeScores = null;
 
-        // 1. Navigation Logic
         function switchView(viewName, element) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             document.getElementById('view-' + viewName).classList.add('active');
@@ -226,7 +261,6 @@
             document.getElementById('page-title').textContent = titles[viewName];
         }
 
-        // 2. Passcode Logic
         function validatePasscode() {
             const subject = document.getElementById('subject-select').value;
             const passcode = document.getElementById('passcode-input').value;
@@ -242,6 +276,7 @@
                 document.getElementById('assessment-subject-title').textContent = `${subjectText} - ${currentClass} Assessment Sheet`;
                 
                 renderAssessmentTable();
+                listenToScoresRealtime();
             } else {
                 document.getElementById('passcode-error').classList.remove('hidden');
             }
@@ -251,20 +286,22 @@
             document.getElementById('assessment-unlocked').classList.add('hidden');
             document.getElementById('passcode-input').value = '';
             currentSubject = "";
+            if (unsubscribeScores) { unsubscribeScores(); unsubscribeScores = null; }
         }
 
-        // 3. Class Selector Logic
-        function updateClass() {
+        async function updateClass() {
             currentClass = document.getElementById('class-selector').value;
             document.getElementById('sidebar-class-display').textContent = `Term: 1 | Class: ${currentClass}`;
             document.getElementById('roster-title').textContent = `${currentClass} Student Roster`;
             document.getElementById('dash-class-name').textContent = currentClass;
+            
+            updateSyncUI("Loading...", "yellow");
+            await loadClassDataFromFirebase();
             renderRoster();
             updateDashboard();
-            if(currentSubject) renderAssessmentTable(); // Refresh assessment if open
+            if(currentSubject) renderAssessmentTable();
         }
 
-        // 4. Roster Management
         function downloadRosterTemplate() {
             const templateData = [["StudentID", "Name", "Gender"], ["GMA3/B7/25/001", "ADUBEA GRACE", "Female"]];
             const ws = XLSX.utils.aoa_to_sheet(templateData);
@@ -273,10 +310,11 @@
             XLSX.writeFile(wb, `LEON_SBA_Roster_Template_${currentClass.replace(' ', '_')}.xlsx`);
         }
         function triggerExcelImport() { document.getElementById('excel-file-input').click(); }
-        function handleFileSelect(event) {
+        
+        async function handleFileSelect(event) {
             const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, {type: 'array'});
                 const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
@@ -285,11 +323,21 @@
                     name: row['Name'] || row['NAME'] || '',
                     gender: row['Gender'] || row['GENDER'] || ''
                 })).filter(s => s.id && s.name);
+
+                updateSyncUI("Saving Roster...", "yellow");
+                if(window.db) {
+                    try {
+                        await window.setDoc(window.doc(window.db, "roster", currentClass), { students: allStudentsData[currentClass] });
+                        updateSyncUI("Saved to Cloud", "green");
+                    } catch(err) { console.error(err); updateSyncUI("Save Failed", "red"); }
+                }
+
                 renderRoster(); updateDashboard();
-                alert(`Successfully imported ${allStudentsData[currentClass].length} students into ${currentClass}!`);
+                alert(`Successfully imported ${allStudentsData[currentClass].length} students into ${currentClass} and saved to cloud!`);
             };
             reader.readAsArrayBuffer(file); event.target.value = '';
         }
+
         function renderRoster() {
             const tbody = document.getElementById('student-table-body');
             const emptyState = document.getElementById('roster-empty-state');
@@ -306,12 +354,20 @@
                 tbody.appendChild(tr);
             });
         }
-        function deleteStudent(index) {
-            if(confirm('Remove this student?')) { allStudentsData[currentClass].splice(index, 1); renderRoster(); updateDashboard(); }
+
+        async function deleteStudent(index) {
+            if(confirm('Remove this student?')) { 
+                allStudentsData[currentClass].splice(index, 1); 
+                renderRoster(); updateDashboard();
+                if(window.db) {
+                    updateSyncUI("Updating...", "yellow");
+                    await window.setDoc(window.doc(window.db, "roster", currentClass), { students: allStudentsData[currentClass] });
+                    updateSyncUI("Saved", "green");
+                }
+            }
         }
         function updateDashboard() { document.getElementById('dash-total-students').textContent = (allStudentsData[currentClass] || []).length; }
 
-        // 5. ASSESSMENT GRADING ENGINE (NEW)
         function renderAssessmentTable() {
             const tbody = document.getElementById('assessment-table-body');
             const emptyRosterMsg = document.getElementById('assessment-empty-roster');
@@ -320,23 +376,17 @@
             tbody.innerHTML = '';
 
             if (students.length === 0) {
-                emptyRosterMsg.classList.remove('hidden');
-                tableContainer.classList.add('hidden');
-                document.getElementById('empty-class-name').textContent = currentClass;
-                return;
+                emptyRosterMsg.classList.remove('hidden'); tableContainer.classList.add('hidden');
+                document.getElementById('empty-class-name').textContent = currentClass; return;
             }
-            emptyRosterMsg.classList.add('hidden');
-            tableContainer.classList.remove('hidden');
+            emptyRosterMsg.classList.add('hidden'); tableContainer.classList.remove('hidden');
 
-            // Initialize scoresData for this class/subject if not exists
             if (!scoresData[currentClass]) scoresData[currentClass] = {};
             if (!scoresData[currentClass][currentSubject]) scoresData[currentClass][currentSubject] = {};
 
             students.forEach((s, index) => {
                 const sid = s.id;
-                // Load existing scores or default to 0
                 const sc = scoresData[currentClass][currentSubject][sid] || { c1: 0, gw: 0, c2: 0, proj: 0, exam: 0 };
-                
                 const tr = document.createElement('tr');
                 tr.className = 'border-b hover:bg-blue-50';
                 tr.id = `row-${sid}`;
@@ -344,86 +394,127 @@
                 tr.innerHTML = `
                     <td class="p-2 border-r font-mono text-xs text-gray-500 sticky left-0 bg-white z-10">${index + 1}</td>
                     <td class="p-2 border-r text-left font-medium text-gray-800 sticky left-12 bg-white z-10 min-w-[200px]">${s.name}</td>
-                    <td class="p-1 border-r"><input type="number" class="score-input" data-sid="${sid}" data-field="c1" data-max="20" value="${sc.c1 || ''}" oninput="handleScoreInput(this)"></td>
-                    <td class="p-1 border-r"><input type="number" class="score-input" data-sid="${sid}" data-field="gw" data-max="10" value="${sc.gw || ''}" oninput="handleScoreInput(this)"></td>
-                    <td class="p-1 border-r"><input type="number" class="score-input" data-sid="${sid}" data-field="c2" data-max="20" value="${sc.c2 || ''}" oninput="handleScoreInput(this)"></td>
-                    <td class="p-1 border-r"><input type="number" class="score-input" data-sid="${sid}" data-field="proj" data-max="10" value="${sc.proj || ''}" oninput="handleScoreInput(this)"></td>
+                    <td class="p-1 border-r"><input type="number" class="score-input" data-sid="${sid}" data-field="c1" data-max="20" value="${sc.c1 || ''}" onchange="handleScoreInput(this)"></td>
+                    <td class="p-1 border-r"><input type="number" class="score-input" data-sid="${sid}" data-field="gw" data-max="10" value="${sc.gw || ''}" onchange="handleScoreInput(this)"></td>
+                    <td class="p-1 border-r"><input type="number" class="score-input" data-sid="${sid}" data-field="c2" data-max="20" value="${sc.c2 || ''}" onchange="handleScoreInput(this)"></td>
+                    <td class="p-1 border-r"><input type="number" class="score-input" data-sid="${sid}" data-field="proj" data-max="10" value="${sc.proj || ''}" onchange="handleScoreInput(this)"></td>
                     <td class="p-2 border-r calc-cell" id="sub-${sid}">0</td>
                     <td class="p-2 border-r calc-cell" id="a-${sid}">0</td>
-                    <td class="p-1 border-r"><input type="number" class="score-input" data-sid="${sid}" data-field="exam" data-max="100" value="${sc.exam || ''}" oninput="handleScoreInput(this)"></td>
+                    <td class="p-1 border-r"><input type="number" class="score-input" data-sid="${sid}" data-field="exam" data-max="100" value="${sc.exam || ''}" onchange="handleScoreInput(this)"></td>
                     <td class="p-2 border-r calc-cell" id="b-${sid}">0</td>
                     <td class="p-2 border-r calc-cell font-bold text-green-700" id="total-${sid}">0</td>
                     <td class="p-2 border-r font-bold" id="grade-${sid}">-</td>
                     <td class="p-2 text-xs font-medium" id="remark-${sid}">-</td>
                 `;
                 tbody.appendChild(tr);
-                calculateRow(sid); // Initial calculation
+                calculateRow(sid);
             });
         }
 
-        function handleScoreInput(input) {
+        async function handleScoreInput(input) {
             const max = parseInt(input.dataset.max);
             let val = parseInt(input.value);
-            
-            // Strict Validation
             if (isNaN(val) || val < 0) { val = 0; input.value = ''; }
-            if (val > max) { 
-                val = max; 
-                input.value = max; 
-                input.classList.add('invalid');
-                setTimeout(() => input.classList.remove('invalid'), 500);
-            } else {
-                input.classList.remove('invalid');
-            }
+            if (val > max) { val = max; input.value = max; input.classList.add('invalid'); setTimeout(() => input.classList.remove('invalid'), 500); } 
+            else { input.classList.remove('invalid'); }
 
             const sid = input.dataset.sid;
             const field = input.dataset.field;
-            
-            // Save to memory
             if (!scoresData[currentClass][currentSubject][sid]) scoresData[currentClass][currentSubject][sid] = {};
             scoresData[currentClass][currentSubject][sid][field] = val;
             
             calculateRow(sid);
+
+            if(window.db) {
+                updateSyncUI("Saving Score...", "yellow");
+                try {
+                    const docRef = window.doc(window.db, "scores", `${currentClass}_${currentSubject}`);
+                    await window.setDoc(docRef, { [sid]: scoresData[currentClass][currentSubject][sid] }, { merge: true });
+                    updateSyncUI("Saved to Cloud", "green");
+                } catch(err) { console.error(err); updateSyncUI("Save Failed", "red"); }
+            }
         }
 
         function calculateRow(sid) {
             const sc = scoresData[currentClass][currentSubject][sid] || { c1: 0, gw: 0, c2: 0, proj: 0, exam: 0 };
-            const c1 = parseInt(sc.c1) || 0;
-            const gw = parseInt(sc.gw) || 0;
-            const c2 = parseInt(sc.c2) || 0;
-            const proj = parseInt(sc.proj) || 0;
-            const exam = parseInt(sc.exam) || 0;
+            const c1 = parseInt(sc.c1) || 0; const gw = parseInt(sc.gw) || 0; const c2 = parseInt(sc.c2) || 0; const proj = parseInt(sc.proj) || 0; const exam = parseInt(sc.exam) || 0;
+            const subTotal = c1 + gw + c2 + proj;
+            const classScore50 = (subTotal / 60) * 50;
+            const examScore50 = (exam / 100) * 50;
+            const total = classScore50 + examScore50;
 
-            const subTotal = c1 + gw + c2 + proj; // Max 60
-            const classScore50 = (subTotal / 60) * 50; // Scaled to 50
-            const examScore50 = (exam / 100) * 50; // Scaled to 50
-            const total = classScore50 + examScore50; // Max 100
-
-            // Update DOM
             document.getElementById(`sub-${sid}`).textContent = subTotal;
             document.getElementById(`a-${sid}`).textContent = classScore50.toFixed(1);
             document.getElementById(`b-${sid}`).textContent = examScore50.toFixed(1);
             document.getElementById(`total-${sid}`).textContent = total.toFixed(1);
 
-            // BECE 2025 Grading Logic
-            let grade = 9;
-            let remark = "Low";
-            if (total >= 80) { grade = 1; remark = "Highest"; }
-            else if (total >= 70) { grade = 2; remark = "Higher"; }
-            else if (total >= 60) { grade = 3; remark = "High"; }
-            else if (total >= 55) { grade = 4; remark = "High Average"; }
-            else if (total >= 50) { grade = 5; remark = "Average"; }
-            else if (total >= 45) { grade = 6; remark = "Low Average"; }
-            else if (total >= 40) { grade = 7; remark = "Low"; }
-            else if (total >= 35) { grade = 8; remark = "Lower"; }
-            else { grade = 9; remark = "Lowest"; }
+            let grade = 9; let remark = "Lowest";
+            if (total >= 80) { grade = 1; remark = "Highest"; } else if (total >= 70) { grade = 2; remark = "Higher"; } else if (total >= 60) { grade = 3; remark = "High"; } else if (total >= 55) { grade = 4; remark = "High Average"; } else if (total >= 50) { grade = 5; remark = "Average"; } else if (total >= 45) { grade = 6; remark = "Low Average"; } else if (total >= 40) { grade = 7; remark = "Low"; } else if (total >= 35) { grade = 8; remark = "Lower"; }
 
             const gradeEl = document.getElementById(`grade-${sid}`);
             gradeEl.textContent = grade;
             gradeEl.className = `p-2 border-r font-bold ${grade <= 3 ? 'text-green-600' : grade <= 6 ? 'text-blue-600' : 'text-red-600'}`;
-            
             document.getElementById(`remark-${sid}`).textContent = remark;
         }
+
+        async function loadClassDataFromFirebase() {
+            if(!window.db) return;
+            try {
+                const rosterSnap = await window.getDoc(window.doc(window.db, "roster", currentClass));
+                if (rosterSnap.exists()) {
+                    allStudentsData[currentClass] = rosterSnap.data().students || [];
+                } else {
+                    allStudentsData[currentClass] = [];
+                }
+
+                const subjects = ['english', 'math', 'science', 'social', 'computing', 'creative', 'rme', 'ghanaian', 'french', 'career'];
+                if(!scoresData[currentClass]) scoresData[currentClass] = {};
+                
+                for(let subj of subjects) {
+                    const scoreSnap = await window.getDoc(window.doc(window.db, "scores", `${currentClass}_${subj}`));
+                    if(scoreSnap.exists()) {
+                        scoresData[currentClass][subj] = scoreSnap.data();
+                    } else {
+                        scoresData[currentClass][subj] = {};
+                    }
+                }
+            } catch(err) { console.error("Load error:", err); }
+        }
+
+        function listenToScoresRealtime() {
+            if(!window.db || !currentSubject) return;
+            if (unsubscribeScores) unsubscribeScores();
+
+            const docRef = window.doc(window.db, "scores", `${currentClass}_${currentSubject}`);
+            unsubscribeScores = window.onSnapshot(docRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const newData = snapshot.data();
+                    if(!scoresData[currentClass]) scoresData[currentClass] = {};
+                    if(!scoresData[currentClass][currentSubject]) scoresData[currentClass][currentSubject] = {};
+                    
+                    let changed = false;
+                    for (const [sid, scores] of Object.entries(newData)) {
+                        if(JSON.stringify(scoresData[currentClass][currentSubject][sid]) !== JSON.stringify(scores)) {
+                            scoresData[currentClass][currentSubject][sid] = scores;
+                            changed = true;
+                            const row = document.getElementById(`row-${sid}`);
+                            if(row) {
+                                const inputs = row.querySelectorAll('.score-input');
+                                inputs.forEach(inp => {
+                                    if(document.activeElement !== inp) {
+                                        inp.value = scores[inp.dataset.field] || '';
+                                    }
+                                });
+                                calculateRow(sid);
+                            }
+                        }
+                    }
+                    if(changed) updateSyncUI("Synced Live", "green");
+                }
+            });
+        }
+
+        updateClass();
     </script>
 </body>
 </html>
