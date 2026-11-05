@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEON GH SBA | Gbawe Gonse M/A Basic School</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SheetJS for Excel Import (Ready for Stage 3) -->
+    <!-- SheetJS for Excel Import/Export -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -97,19 +97,25 @@
                 </div>
                 <div class="bg-white p-8 rounded-xl shadow-sm">
                     <h3 class="text-xl font-bold text-primary mb-4">Welcome to LEON GH SBA</h3>
-                    <p class="text-gray-600">The system is fully operational. Navigate to <strong>Student Roster</strong> to import your class list using the Excel template, or add them manually.</p>
+                    <p class="text-gray-600">The system is fully operational. Navigate to <strong>Student Roster</strong> to download your class template, fill it out, and upload it.</p>
                 </div>
             </div>
 
-            <!-- ROSTER VIEW (Clean Interface for Import/Manual Entry) -->
+            <!-- ROSTER VIEW -->
             <div id="view-roster" class="view-section">
                 <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-                    <div class="p-6 border-b flex justify-between items-center">
+                    <div class="p-6 border-b flex justify-between items-center flex-wrap gap-4">
                         <div>
                             <h3 class="text-xl font-bold text-primary" id="roster-title">Basic 7 Student Roster</h3>
-                            <p class="text-sm text-gray-500 mt-1">Manage your class list and student details.</p>
+                            <p class="text-sm text-gray-500 mt-1">Manage your class list. Download the template, fill it, and import.</p>
                         </div>
-                        <div class="flex space-x-3">
+                        <div class="flex flex-wrap gap-3">
+                            <!-- NEW DOWNLOAD TEMPLATE BUTTON -->
+                            <button onclick="downloadRosterTemplate()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                Download Template
+                            </button>
+                            
                             <button onclick="triggerExcelImport()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm transition-colors">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                                 Import Excel
@@ -124,11 +130,11 @@
                     <!-- Hidden File Input for Excel -->
                     <input type="file" id="excel-file-input" accept=".xlsx, .xls" class="hidden" onchange="handleFileSelect(event)">
 
-                    <!-- Empty State (Shown when no students are loaded) -->
+                    <!-- Empty State -->
                     <div id="roster-empty-state" class="p-16 text-center">
                         <svg class="w-20 h-20 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                         <p class="text-lg font-medium text-gray-600">No students loaded for this class.</p>
-                        <p class="text-sm text-gray-400 mt-2">Use the "Import Excel" button to upload your roster template, or "Add Student" to enter them manually.</p>
+                        <p class="text-sm text-gray-400 mt-2">Click "Download Template" to get the blank Excel file, fill it out, and use "Import Excel" to upload.</p>
                     </div>
 
                     <!-- Student Table (Hidden until data is loaded) -->
@@ -204,7 +210,6 @@
         function validatePasscode() {
             const subject = document.getElementById('subject-select').value;
             const passcode = document.getElementById('passcode-input').value;
-            // Temporary hardcoded check for testing. Will be moved to Firebase in Stage 3.
             const validCodes = {'english': 'eng2025', 'math': 'math2025', 'science': 'sci2025'};
             
             if (subject && passcode === validCodes[subject]) {
@@ -226,22 +231,42 @@
             const selectedClass = document.getElementById('class-selector').value;
             document.getElementById('sidebar-class-display').textContent = `Term: 1 | Class: ${selectedClass}`;
             document.getElementById('roster-title').textContent = `${selectedClass} Student Roster`;
-            // In Stage 3, this will also fetch the correct students from Firebase for that class.
         }
 
-        // 4. Roster Management (Manual & Excel Placeholders for Stage 3)
+        // 4. Roster Management & Excel Template Logic
+        function downloadRosterTemplate() {
+            const selectedClass = document.getElementById('class-selector').value;
+            // Create header row
+            const templateData = [
+                ["StudentID", "Name", "Gender"],
+                ["GMA3/B7/25/001", "ADUBEA GRACE", "Female"], // Example row
+                ["GMA3/B7/25/002", "AGBENORSI ESTHER", "Female"] // Example row
+            ];
+            
+            // Generate worksheet
+            const ws = XLSX.utils.aoa_to_sheet(templateData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Roster Template");
+            
+            // Download file
+            XLSX.writeFile(wb, `LEON_SBA_Roster_Template_${selectedClass.replace(' ', '_')}.xlsx`);
+        }
+
         function triggerExcelImport() {
-            alert("Excel Import feature is ready to be connected! In the next stage, this will open a file picker to read your .xlsx template.");
-            // document.getElementById('excel-file-input').click(); // Uncomment in Stage 3
+            document.getElementById('excel-file-input').click();
         }
 
         function triggerManualAdd() {
-            alert("Manual Add Student form will open here in Stage 3.");
+            alert("Manual Add Student form will open here in the next step.");
         }
 
         function handleFileSelect(event) {
-            // SheetJS logic will go here in Stage 3
-            console.log("File selected:", event.target.files[0]);
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            alert(`File selected: ${file.name}. In the next step, we will write the logic to read this file and populate the table!`);
+            // Reset input so the same file can be selected again if needed
+            event.target.value = ''; 
         }
     </script>
 </body>
