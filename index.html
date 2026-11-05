@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LEON GH SBA | Gbawe Gonse M/A Basic School</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS for Excel Import (Ready for Stage 3) -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             --primary: #0d47a1;
@@ -51,7 +53,7 @@
             <h2 class="text-2xl font-bold text-primary" id="page-title">Dashboard Overview</h2>
             
             <div class="flex items-center space-x-4">
-                <!-- NEW CLASS SELECTOR -->
+                <!-- CLASS SELECTOR -->
                 <div class="flex items-center space-x-2">
                     <label for="class-selector" class="text-sm font-medium text-gray-600">Class:</label>
                     <select id="class-selector" onchange="updateClass()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none">
@@ -82,7 +84,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-primary">
                         <p class="text-sm font-medium text-gray-500">Total Students</p>
-                        <p class="text-3xl font-bold text-primary mt-2">106</p>
+                        <p class="text-3xl font-bold text-primary mt-2" id="dash-total-students">0</p>
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-orange-500">
                         <p class="text-sm font-medium text-gray-500">Subjects Tracked</p>
@@ -95,18 +97,42 @@
                 </div>
                 <div class="bg-white p-8 rounded-xl shadow-sm">
                     <h3 class="text-xl font-bold text-primary mb-4">Welcome to LEON GH SBA</h3>
-                    <p class="text-gray-600">The system supports all classes from <strong>KG 1 to Basic 9</strong>. Use the dropdown in the top right corner to switch classes. The data and grading structure will adapt to the selected class.</p>
+                    <p class="text-gray-600">The system is fully operational. Navigate to <strong>Student Roster</strong> to import your class list using the Excel template, or add them manually.</p>
                 </div>
             </div>
 
-            <!-- ROSTER VIEW -->
+            <!-- ROSTER VIEW (Clean Interface for Import/Manual Entry) -->
             <div id="view-roster" class="view-section">
                 <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div class="p-6 border-b flex justify-between items-center">
-                        <h3 class="text-xl font-bold text-primary" id="roster-title">Basic 7 Student Roster</h3>
-                        <span class="bg-blue-100 text-primary px-3 py-1 rounded-full text-sm font-medium">106 Students</span>
+                        <div>
+                            <h3 class="text-xl font-bold text-primary" id="roster-title">Basic 7 Student Roster</h3>
+                            <p class="text-sm text-gray-500 mt-1">Manage your class list and student details.</p>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button onclick="triggerExcelImport()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                                Import Excel
+                            </button>
+                            <button onclick="triggerManualAdd()" class="bg-primary hover:bg-primary-light text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-sm transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                Add Student
+                            </button>
+                        </div>
                     </div>
-                    <div class="overflow-x-auto">
+                    
+                    <!-- Hidden File Input for Excel -->
+                    <input type="file" id="excel-file-input" accept=".xlsx, .xls" class="hidden" onchange="handleFileSelect(event)">
+
+                    <!-- Empty State (Shown when no students are loaded) -->
+                    <div id="roster-empty-state" class="p-16 text-center">
+                        <svg class="w-20 h-20 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        <p class="text-lg font-medium text-gray-600">No students loaded for this class.</p>
+                        <p class="text-sm text-gray-400 mt-2">Use the "Import Excel" button to upload your roster template, or "Add Student" to enter them manually.</p>
+                    </div>
+
+                    <!-- Student Table (Hidden until data is loaded) -->
+                    <div id="roster-table-container" class="hidden overflow-x-auto">
                         <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-gray-50 text-gray-600 text-sm uppercase">
@@ -114,10 +140,11 @@
                                     <th class="p-4 border-b">Name</th>
                                     <th class="p-4 border-b">Gender</th>
                                     <th class="p-4 border-b">Status</th>
+                                    <th class="p-4 border-b text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="student-table-body" class="text-sm">
-                                <!-- Students will be injected here by JavaScript -->
+                                <!-- Students will be injected here dynamically -->
                             </tbody>
                         </table>
                     </div>
@@ -134,6 +161,13 @@
                             <option value="english">English Language</option>
                             <option value="math">Mathematics</option>
                             <option value="science">Science</option>
+                            <option value="social">Social Studies</option>
+                            <option value="computing">Computing</option>
+                            <option value="creative">Creative Arts</option>
+                            <option value="rme">R.M.E</option>
+                            <option value="ghanaian">Ghanaian Language</option>
+                            <option value="french">French</option>
+                            <option value="career">Career Technology</option>
                         </select>
                         <input type="password" id="passcode-input" placeholder="Enter passcode (try: eng2025)" class="w-full p-3 border rounded-lg">
                         <button onclick="validatePasscode()" class="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-blue-800">Unlock Sheet</button>
@@ -142,7 +176,7 @@
                 </div>
                 <div id="assessment-unlocked" class="hidden bg-white p-8 rounded-xl shadow-sm text-center">
                     <h3 class="text-2xl font-bold text-green-600 mb-4">Assessment Sheet Unlocked!</h3>
-                    <p class="text-gray-600">The grading table will be built here in the next step.</p>
+                    <p class="text-gray-600">The grading table and input fields will be built here in Stage 3.</p>
                     <button onclick="lockAssessment()" class="mt-4 text-red-500 underline">Lock</button>
                 </div>
             </div>
@@ -170,7 +204,10 @@
         function validatePasscode() {
             const subject = document.getElementById('subject-select').value;
             const passcode = document.getElementById('passcode-input').value;
-            if (subject && passcode === 'eng2025') {
+            // Temporary hardcoded check for testing. Will be moved to Firebase in Stage 3.
+            const validCodes = {'english': 'eng2025', 'math': 'math2025', 'science': 'sci2025'};
+            
+            if (subject && passcode === validCodes[subject]) {
                 document.getElementById('passcode-gate').classList.add('hidden');
                 document.getElementById('assessment-unlocked').classList.remove('hidden');
                 document.getElementById('passcode-error').classList.add('hidden');
@@ -187,39 +224,25 @@
         // 3. Class Selector Logic
         function updateClass() {
             const selectedClass = document.getElementById('class-selector').value;
-            // Update Sidebar
             document.getElementById('sidebar-class-display').textContent = `Term: 1 | Class: ${selectedClass}`;
-            // Update Roster Title
             document.getElementById('roster-title').textContent = `${selectedClass} Student Roster`;
-            // In the future, this function will also fetch the correct students from Firebase for that class!
+            // In Stage 3, this will also fetch the correct students from Firebase for that class.
         }
 
-        // 4. Load Student Data (Basic 7 Example)
-        const students = [
-            { id: 'GMA3/B7/25/001', name: 'ADUBEA GRACE', gender: 'Female' },
-            { id: 'GMA3/B7/25/002', name: 'AGBENORSI ESTHER', gender: 'Female' },
-            { id: 'GMA3/B7/25/003', name: 'AHEDOR FAUSTINA', gender: 'Female' },
-            { id: 'GMA3/B7/25/004', name: 'SHITOR MONICA BLESSING', gender: 'Female' },
-            { id: 'GMA3/B7/25/005', name: 'AKUSUM RACHEAL', gender: 'Female' },
-            { id: 'GMA3/B7/25/006', name: 'AMEDAKA ABIGAIL', gender: 'Female' },
-            { id: 'GMA3/B7/25/007', name: 'AMPADU BEATRICE', gender: 'Female' },
-            { id: 'GMA3/B7/25/008', name: 'ANNAN SHARON', gender: 'Female' },
-            { id: 'GMA3/B7/25/052', name: 'ABUDU MOHAMMED', gender: 'Male' },
-            { id: 'GMA3/B7/25/053', name: 'AGYARE KWAKU', gender: 'Male' }
-        ];
+        // 4. Roster Management (Manual & Excel Placeholders for Stage 3)
+        function triggerExcelImport() {
+            alert("Excel Import feature is ready to be connected! In the next stage, this will open a file picker to read your .xlsx template.");
+            // document.getElementById('excel-file-input').click(); // Uncomment in Stage 3
+        }
 
-        const tbody = document.getElementById('student-table-body');
-        students.forEach(s => {
-            const tr = document.createElement('tr');
-            tr.className = 'border-b hover:bg-gray-50';
-            tr.innerHTML = `
-                <td class="p-4 font-mono text-xs text-gray-500">${s.id}</td>
-                <td class="p-4 font-medium text-gray-800">${s.name}</td>
-                <td class="p-4"><span class="px-2 py-1 rounded text-xs ${s.gender === 'Female' ? 'bg-pink-100 text-pink-700' : 'bg-blue-100 text-blue-700'}">${s.gender}</span></td>
-                <td class="p-4"><span class="text-green-600 text-xs font-bold">● Active</span></td>
-            `;
-            tbody.appendChild(tr);
-        });
+        function triggerManualAdd() {
+            alert("Manual Add Student form will open here in Stage 3.");
+        }
+
+        function handleFileSelect(event) {
+            // SheetJS logic will go here in Stage 3
+            console.log("File selected:", event.target.files[0]);
+        }
     </script>
 </body>
 </html>
