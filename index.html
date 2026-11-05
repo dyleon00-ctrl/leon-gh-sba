@@ -41,7 +41,7 @@
         </nav>
         <div class="p-4 border-t border-blue-800 text-xs text-blue-200">
             <p>Academic Year: 2025/2026</p>
-            <p>Term: 1 | Class: Basic 7</p>
+            <p id="sidebar-class-display">Term: 1 | Class: Basic 7</p>
         </div>
     </aside>
 
@@ -49,7 +49,26 @@
     <main class="flex-1 flex flex-col overflow-hidden">
         <header class="bg-white shadow-sm p-4 flex justify-between items-center border-b">
             <h2 class="text-2xl font-bold text-primary" id="page-title">Dashboard Overview</h2>
+            
             <div class="flex items-center space-x-4">
+                <!-- NEW CLASS SELECTOR -->
+                <div class="flex items-center space-x-2">
+                    <label for="class-selector" class="text-sm font-medium text-gray-600">Class:</label>
+                    <select id="class-selector" onchange="updateClass()" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-primary focus:border-primary outline-none">
+                        <option value="KG 1">KG 1</option>
+                        <option value="KG 2">KG 2</option>
+                        <option value="Basic 1">Basic 1</option>
+                        <option value="Basic 2">Basic 2</option>
+                        <option value="Basic 3">Basic 3</option>
+                        <option value="Basic 4">Basic 4</option>
+                        <option value="Basic 5">Basic 5</option>
+                        <option value="Basic 6">Basic 6</option>
+                        <option value="Basic 7" selected>Basic 7</option>
+                        <option value="Basic 8">Basic 8</option>
+                        <option value="Basic 9">Basic 9</option>
+                    </select>
+                </div>
+
                 <div class="flex items-center px-3 py-1 rounded-full bg-green-100 text-sm font-medium text-green-600">
                     <span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> System Ready
                 </div>
@@ -76,7 +95,7 @@
                 </div>
                 <div class="bg-white p-8 rounded-xl shadow-sm">
                     <h3 class="text-xl font-bold text-primary mb-4">Welcome to LEON GH SBA</h3>
-                    <p class="text-gray-600">The system is now fully operational. Click on "Student Roster" in the sidebar to see the students from your Excel file loaded into the system.</p>
+                    <p class="text-gray-600">The system supports all classes from <strong>KG 1 to Basic 9</strong>. Use the dropdown in the top right corner to switch classes. The data and grading structure will adapt to the selected class.</p>
                 </div>
             </div>
 
@@ -84,7 +103,7 @@
             <div id="view-roster" class="view-section">
                 <div class="bg-white rounded-xl shadow-sm overflow-hidden">
                     <div class="p-6 border-b flex justify-between items-center">
-                        <h3 class="text-xl font-bold text-primary">Basic 7 Student Roster</h3>
+                        <h3 class="text-xl font-bold text-primary" id="roster-title">Basic 7 Student Roster</h3>
                         <span class="bg-blue-100 text-primary px-3 py-1 rounded-full text-sm font-medium">106 Students</span>
                     </div>
                     <div class="overflow-x-auto">
@@ -165,7 +184,17 @@
             document.getElementById('passcode-input').value = '';
         }
 
-        // 3. Load Student Data from your Excel File
+        // 3. Class Selector Logic
+        function updateClass() {
+            const selectedClass = document.getElementById('class-selector').value;
+            // Update Sidebar
+            document.getElementById('sidebar-class-display').textContent = `Term: 1 | Class: ${selectedClass}`;
+            // Update Roster Title
+            document.getElementById('roster-title').textContent = `${selectedClass} Student Roster`;
+            // In the future, this function will also fetch the correct students from Firebase for that class!
+        }
+
+        // 4. Load Student Data (Basic 7 Example)
         const students = [
             { id: 'GMA3/B7/25/001', name: 'ADUBEA GRACE', gender: 'Female' },
             { id: 'GMA3/B7/25/002', name: 'AGBENORSI ESTHER', gender: 'Female' },
