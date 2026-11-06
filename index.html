@@ -77,6 +77,7 @@
                 </div>
                 <button type="submit" id="login-btn" class="login-btn">Sign In</button>
                 <p id="login-error" class="text-red-500 text-sm text-center mt-3 hidden">Invalid credentials. Please try again.</p>
+                <p id="login-debug" class="text-xs text-gray-400 text-center mt-2 hidden"></p>
             </form>
             <div class="text-center mt-6 pt-4 border-t border-gray-200">
                 <p class="text-xs text-gray-400">© 2026 Gbawe Gonse M/A Basic School</p>
@@ -300,16 +301,19 @@
             appId: "1:924803843159:web:1dbbbd6b539fa775cecf12",
             measurementId: "G-XVQTTSXYWCQ"
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        
+        let db = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+            console.log("✅ Firebase initialized");
+        } catch (e) {
+            console.error("❌ Firebase init failed:", e);
+        }
 
         // ==========================================
-        // STATE - DEFAULT USERS ARE HARDCODED & IMMUTABLE
+        // IMMUTABLE DEFAULT USERS - NEVER OVERWRITTEN
         // ==========================================
-        let currentUser = null;
-        let currentClass = "Basic 7";
-        
-        // These users ALWAYS exist - they cannot be deleted or overwritten
         const DEFAULT_USERS = [
             { username: "admin", password: "admin123", role: "developer" },
             { username: "headmaster", password: "school123", role: "school_admin" },
@@ -317,9 +321,15 @@
             { username: "math_teacher", password: "math123", role: "subject_teacher", assignedSubject: "Mathematics" }
         ];
 
+        // ==========================================
+        // APP STATE
+        // ==========================================
+        let currentUser = null;
+        let currentClass = "Basic 7";
+        
         let appData = {
             config: { schoolName: "GBAWE GONSE M/A BASIC SCHOOL", term: "Term 1, 2025/2026", totalAttendance: 70 },
-            users: [], // Will be populated from DEFAULT_USERS + cloud
+            users: [], // Will be populated from DEFAULT_USERS + cloud custom users
             roster: {},
             scores: {},
             psychosocial: {}
@@ -331,19 +341,39 @@
         const interestList = ["Reading", "Sports", "Singing", "Dancing", "Drawing", "Writing", "ICT & Coding", "Leadership"];
 
         // ==========================================
-        // INITIALIZATION - LOADS DEFAULTS FIRST, THEN MERGES CLOUD
+        // CRITICAL: Rebuild users array from DEFAULT + cloud custom users
+        // ==========================================
+        function rebuildUsersArray(cloudCustomUsers = []) {
+            // Always start with defaults
+            appData.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
+            
+            // Add any custom users from cloud that aren't defaults
+            if (Array.isArray(cloudCustomUsers)) {
+                cloudCustomUsers.forEach(cu => {
+                    const isDefault = DEFAULT_USERS.some(d => d.username === cu.username);
+                    if (!isDefault && cu.username && cu.password) {
+                        appData.users.push(cu);
+                    }
+                });
+            }
+            
+            console.log("👥 Users array rebuilt:", appData.users.map(u => u.username));
+        }
+
+        // ==========================================
+        // INITIALIZATION
         // ==========================================
         function initApp() {
-            // ALWAYS start with default users - login works immediately
-            appData.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
+            // Build users array immediately with defaults
+            rebuildUsersArray();
             
             // Check for existing session
             const savedUser = sessionStorage.getItem('leon_sba_user');
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
-                    // Verify user still exists in defaults
-                    const stillValid = DEFAULT_USERS.find(u => u.username === currentUser.username);
+                    const stillValid = DEFAULT_USERS.some(u => u.username === currentUser.username) || 
+                                      appData.users.some(u => u.username === currentUser.username);
                     if (stillValid) {
                         showApp();
                     } else {
@@ -356,63 +386,71 @@
             }
             
             // Listen to Firebase for live updates
-            db.collection("sba_system").doc("main_data").onSnapshot((doc) => {
-                if (doc.exists) {
-                    const cloudData = doc.data();
-                    // Merge cloud data WITHOUT overwriting default users
-                    appData.roster = cloudData.roster || appData.roster;
-                    appData.scores = cloudData.scores || appData.scores;
-                    appData.psychosocial = cloudData.psychosocial || appData.psychosocial;
-                    if (cloudData.config) appData.config = cloudData.config;
-                    
-                    // Merge cloud users with defaults (add new ones, keep defaults)
-                    if (cloudData.users && Array.isArray(cloudData.users)) {
-                        cloudData.users.forEach(cu => {
-                            if (!appData.users.find(u => u.username === cu.username)) {
-                                appData.users.push(cu);
-                            }
-                        });
+            if (db) {
+                db.collection("sba_system").doc("main_data").onSnapshot((doc) => {
+                    if (doc.exists) {
+                        const cloudData = doc.data();
+                        // Merge cloud data WITHOUT touching users
+                        appData.roster = cloudData.roster || appData.roster;
+                        appData.scores = cloudData.scores || appData.scores;
+                        appData.psychosocial = cloudData.psychosocial || appData.psychosocial;
+                        if (cloudData.config) appData.config = cloudData.config;
+                        
+                        // Rebuild users with any custom cloud users
+                        rebuildUsersArray(cloudData.users || []);
+                        
+                        if (currentUser) {
+                            refreshCurrentView();
+                        }
                     }
-                    
-                    if (currentUser) {
-                        refreshCurrentView();
-                    }
-                } else {
-                    // First time - save defaults to cloud
-                    saveToCloud();
-                }
-            }, (error) => {
-                console.log("Cloud sync offline, using local data:", error);
-            });
+                }, (error) => {
+                    console.log("⚠️ Cloud sync offline:", error.message);
+                });
+            }
         }
 
         // ==========================================
-        // AUTHENTICATION - FIXED & ROBUST
+        // AUTHENTICATION - BULLETPROOF VERSION
         // ==========================================
         function handleLogin(e) {
             e.preventDefault();
+            
             const u = document.getElementById('login-username').value.trim();
             const p = document.getElementById('login-password').value.trim();
             const btn = document.getElementById('login-btn');
             const err = document.getElementById('login-error');
+            const debug = document.getElementById('login-debug');
             
+            // Reset UI
+            err.classList.add('hidden');
+            debug.classList.add('hidden');
             btn.disabled = true;
             btn.textContent = 'Authenticating...';
-            err.classList.add('hidden');
             
-            // Search in appData.users (which ALWAYS contains DEFAULT_USERS)
-            const user = appData.users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
+            console.log("🔐 Login attempt:", { username: u, usersAvailable: appData.users.length });
             
-            if (user) {
-                currentUser = user;
-                sessionStorage.setItem('leon_sba_user', JSON.stringify(user));
-                showToast(`Welcome, ${user.username}!`, 'success');
-                showApp();
-            } else {
-                err.classList.remove('hidden');
-                btn.disabled = false;
-                btn.textContent = 'Sign In';
-            }
+            // Small delay for UX feedback
+            setTimeout(() => {
+                // Search for user
+                const user = appData.users.find(x => 
+                    x.username.toLowerCase() === u.toLowerCase() && x.password === p
+                );
+                
+                if (user) {
+                    console.log("✅ Login successful:", user.username);
+                    currentUser = user;
+                    sessionStorage.setItem('leon_sba_user', JSON.stringify(user));
+                    showToast(`Welcome, ${user.username}!`, 'success');
+                    showApp();
+                } else {
+                    console.log("❌ Login failed. Users in system:", appData.users.map(u => u.username));
+                    err.classList.remove('hidden');
+                    debug.textContent = `Debug: ${appData.users.length} users loaded. Check username/password.`;
+                    debug.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                }
+            }, 500);
         }
 
         function showApp() {
@@ -458,6 +496,7 @@
             document.getElementById('login-btn').disabled = false;
             document.getElementById('login-btn').textContent = 'Sign In';
             document.getElementById('login-error').classList.add('hidden');
+            document.getElementById('login-debug').classList.add('hidden');
         }
 
         function buildSidebar() {
@@ -510,13 +549,15 @@
         }
 
         function saveToCloud() {
-            // Save everything EXCEPT users (users are managed separately)
+            if (!db) return;
+            // Only save custom users (not defaults)
+            const customUsers = appData.users.filter(u => !DEFAULT_USERS.some(d => d.username === u.username));
             const saveData = {
                 config: appData.config,
                 roster: appData.roster,
                 scores: appData.scores,
                 psychosocial: appData.psychosocial,
-                users: appData.users.filter(u => !DEFAULT_USERS.find(d => d.username === u.username)) // Only save custom users
+                users: customUsers
             };
             db.collection("sba_system").doc("main_data").set(saveData).catch(err => console.error("Save error:", err));
         }
