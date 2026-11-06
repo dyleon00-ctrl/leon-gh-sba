@@ -18,79 +18,97 @@
         
         /* Login Screen */
         #login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); z-index: 50; display: flex; align-items: center; justify-content: center; }
+        .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 420px; }
+        .login-card input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; font-size: 15px; }
+        .login-card input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(13,71,161,0.1); }
+        .login-btn { width: 100%; padding: 13px; background: var(--primary); color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+        .login-btn:hover { background: #0b3c8c; }
+        .login-btn:disabled { background: #94a3b8; cursor: not-allowed; }
         
         /* Layout */
         .app-container { display: flex; height: 100vh; }
         sidebar { width: 260px; background: var(--primary); color: white; display: flex; flex-direction: column; box-shadow: 3px 0 10px rgba(0,0,0,0.1); z-index: 10; }
+        .brand { padding: 20px; font-size: 1.2rem; font-weight: bold; background: rgba(0,0,0,0.2); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .nav-links { list-style: none; padding: 15px 0; overflow-y: auto; flex: 1; }
         .nav-links li { padding: 13px 20px; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 14px; font-size: 0.93rem; }
         .nav-links li:hover, .nav-links li.active { background: rgba(255,255,255,0.15); border-left: 4px solid var(--accent); }
         
         main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        header { background: white; padding: 15px 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
         .content-area { flex: 1; padding: 25px; overflow-y: auto; display: none; }
         .content-area.active { display: block; }
         
-        /* Tables & Inputs */
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; background: white; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
         th { background: #e3f2fd; color: var(--primary); font-weight: 600; }
         input[type="text"], input[type="number"], input[type="password"], select { width: 100%; padding: 7px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
-        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 4px rgba(13,71,161,0.2); }
         
-        .btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: background 0.2s; }
+        .btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
         .btn:hover { background: #0b3c8c; }
         .btn-accent { background: var(--accent); }
         .btn-accent:hover { background: #d96d00; }
         .btn-danger { background: #c62828; }
         .btn-danger:hover { background: #b71c1c; }
-
+        .btn-secondary { background: #555; }
+        .btn-secondary:hover { background: #333; }
+        
         .heat-green { background-color: #d4edda !important; color: #155724; font-weight: bold; }
         .heat-yellow { background-color: #fff3cd !important; color: #856404; }
         .heat-orange { background-color: #ffe8d6 !important; color: #b33900; }
         .heat-red { background-color: #f8d7da !important; color: #721c24; font-weight: bold; }
+        
+        .toast { position: fixed; top: 20px; right: 20px; padding: 14px 22px; border-radius: 8px; color: white; font-weight: 600; z-index: 1000; animation: slideIn 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast-success { background: #10b981; }
+        .toast-error { background: #ef4444; }
+        .toast-info { background: #3b82f6; }
     </style>
 </head>
 <body>
 
     <!-- LOGIN SCREEN -->
     <div id="login-screen">
-        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
+        <div class="login-card">
             <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary text-white mb-3">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                </div>
                 <h1 class="text-2xl font-bold text-primary">LEON GH SBA</h1>
-                <p class="text-gray-500 text-sm">School Based Assessment System</p>
+                <p class="text-gray-500 text-sm mt-1">School Based Assessment System</p>
+                <p class="text-xs text-gray-400 mt-2">Secure Authentication Required</p>
             </div>
-            <form onsubmit="handleLogin(event)">
-                <div class="mb-4">
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Username</label>
-                    <input type="text" id="login-username" required class="w-full p-3 border rounded-lg">
+                    <input type="text" id="login-username" required autocomplete="username" placeholder="Enter your username">
                 </div>
-                <div class="mb-6">
+                <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Password</label>
-                    <input type="password" id="login-password" required class="w-full p-3 border rounded-lg">
+                    <input type="password" id="login-password" required autocomplete="current-password" placeholder="Enter your password">
                 </div>
-                <button type="submit" class="w-full bg-primary text-white font-bold py-3 rounded-lg hover:bg-primary-light transition-colors">Secure Login</button>
-                <p id="login-error" class="text-red-500 text-sm text-center mt-3 hidden">Invalid username or password.</p>
+                <button type="submit" id="login-btn" class="login-btn">Sign In</button>
+                <p id="login-error" class="text-red-500 text-sm text-center mt-3 hidden">Invalid credentials. Please try again.</p>
             </form>
-            <div class="mt-6 p-4 bg-blue-50 rounded-lg text-xs text-blue-800">
-                <p class="font-bold mb-1">Default Credentials:</p>
-                <p>Developer: <code>admin</code> / <code>admin123</code></p>
-                <p>School Admin: <code>headmaster</code> / <code>school123</code></p>
-                <p>Class Teacher (B7): <code>teacher_b7</code> / <code>class123</code></p>
-                <p>Subject Teacher: <code>math_teacher</code> / <code>math123</code></p>
+            <div class="text-center mt-6 pt-4 border-t border-gray-200">
+                <p class="text-xs text-gray-400">© 2026 Gbawe Gonse M/A Basic School</p>
+                <p class="text-xs text-gray-400">Authorized personnel only</p>
             </div>
         </div>
     </div>
 
-    <!-- MAIN APP CONTAINER (Hidden until logged in) -->
+    <!-- MAIN APP -->
     <div id="app-container" class="app-container hidden">
         <sidebar>
-            <div class="p-6 border-b border-blue-800">
-                <h1 class="text-xl font-bold tracking-wide">LEON GH SBA</h1>
-                <p class="text-xs text-blue-200 mt-1" id="user-role-display">Role: Loading...</p>
+            <div class="brand">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+                LEON GH SBA
             </div>
-            <ul class="nav-links flex-1 overflow-y-auto py-4" id="sidebar-nav">
-                <!-- Nav items injected by JS based on role -->
-            </ul>
+            <ul class="nav-links" id="sidebar-nav"></ul>
             <div class="p-4 border-t border-blue-800">
+                <div class="text-xs text-blue-200 mb-2">
+                    <p id="user-role-display">Role: Loading...</p>
+                    <p id="user-class-display" class="hidden">Class: —</p>
+                </div>
                 <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                     Logout
@@ -99,7 +117,7 @@
         </sidebar>
 
         <main>
-            <header class="bg-white shadow-sm p-4 flex justify-between items-center border-b">
+            <header>
                 <h2 class="text-xl font-bold text-primary" id="header-title">Dashboard</h2>
                 <div class="flex items-center gap-4">
                     <select id="class-selector" onchange="changeClass(this.value)" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium">
@@ -117,8 +135,6 @@
             </header>
 
             <div class="flex-1 overflow-y-auto p-6">
-                
-                <!-- DASHBOARD VIEW -->
                 <div id="view-dashboard" class="content-area active">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                         <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-primary">
@@ -126,7 +142,7 @@
                             <p class="text-3xl font-bold text-primary mt-2" id="dash-total-students">0</p>
                         </div>
                         <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-accent">
-                            <p class="text-sm font-medium text-gray-500">Subjects with Data Entered</p>
+                            <p class="text-sm font-medium text-gray-500">Subjects with Data</p>
                             <p class="text-3xl font-bold text-accent mt-2" id="dash-subjects-completed">0 / 10</p>
                         </div>
                         <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
@@ -144,11 +160,10 @@
                     </div>
                 </div>
 
-                <!-- ROSTER VIEW -->
                 <div id="view-roster" class="content-area">
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6">
                         <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
-                            <h3 class="text-xl font-bold text-primary" id="roster-title">Basic 7 Student Roster</h3>
+                            <h3 class="text-xl font-bold text-primary" id="roster-title">Student Roster</h3>
                             <div class="flex gap-3">
                                 <button onclick="downloadRosterTemplate()" class="btn bg-gray-600 hover:bg-gray-700">Download Template</button>
                                 <input type="file" id="roster-upload" accept=".xlsx,.xls" class="hidden" onchange="importRoster(event)">
@@ -163,7 +178,6 @@
                     </div>
                 </div>
 
-                <!-- SCORES VIEW -->
                 <div id="view-scores" class="content-area">
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6">
                         <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
@@ -203,7 +217,6 @@
                     </div>
                 </div>
 
-                <!-- PSYCHOSOCIAL VIEW -->
                 <div id="view-psychosocial" class="content-area">
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6">
                         <h3 class="text-xl font-bold text-primary mb-4">Psychosocial & Attendance</h3>
@@ -217,20 +230,18 @@
                     </div>
                 </div>
 
-                <!-- REPORTS VIEW -->
                 <div id="view-reports" class="content-area">
-                    <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6 no-print">
+                    <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6">
                         <h3 class="text-xl font-bold text-primary mb-4">Report Card Generator</h3>
-                        <div class="flex gap-4 mb-4">
+                        <div class="flex gap-4 mb-4 flex-wrap">
                             <select id="report-student-select" class="border p-2 rounded-lg w-64" onchange="generateReport()"></select>
                             <button onclick="window.print()" class="btn btn-accent">Print Current Report</button>
                             <button onclick="printBulkReports()" class="btn">Print Bulk (All Class)</button>
                         </div>
+                        <div id="print-container"></div>
                     </div>
-                    <div id="print-container" class="print-area"></div>
                 </div>
 
-                <!-- USERS VIEW (Developer/Admin Only) -->
                 <div id="view-users" class="content-area">
                     <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6">
                         <h3 class="text-xl font-bold text-primary mb-4">User Management</h3>
@@ -244,15 +255,47 @@
                             </select>
                             <button onclick="addUser()" class="btn">Create User</button>
                         </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-blue-50 p-4 rounded-lg">
+                            <input type="text" id="assign-class" placeholder="Assigned Class (e.g., Basic 7)" class="p-2 border rounded">
+                            <input type="text" id="assign-subject" placeholder="Assigned Subject (e.g., Mathematics)" class="p-2 border rounded">
+                        </div>
                         <table id="users-table">
                             <thead><tr><th>Username</th><th>Role</th><th>Assigned Class</th><th>Assigned Subject</th><th>Action</th></tr></thead>
                             <tbody></tbody>
                         </table>
                     </div>
                 </div>
-
             </div>
         </main>
+    </div>
+
+    <!-- Add Student Modal -->
+    <div id="add-student-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">Add New Student</h3>
+            <form onsubmit="handleAddStudent(event)">
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Student ID</label>
+                    <input type="text" id="new-student-id" required class="w-full p-3 border rounded-lg" placeholder="e.g., GMA3/B7/25/107">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Full Name</label>
+                    <input type="text" id="new-student-name" required class="w-full p-3 border rounded-lg" placeholder="e.g., JOHN DOE">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Gender</label>
+                    <select id="new-student-gender" required class="w-full p-3 border rounded-lg">
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-primary hover:bg-primary-light text-white font-semibold py-3 rounded-lg">Add Student</button>
+                    <button type="button" onclick="closeAddStudentModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-3 rounded-lg">Cancel</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
@@ -272,22 +315,26 @@
         const db = firebase.firestore();
 
         // ==========================================
-        // STATE & DEFAULT DATA
+        // STATE & DEFAULT USERS
         // ==========================================
         let currentUser = null;
         let currentClass = "Basic 7";
+        let firebaseReady = false;
         
+        // Pre-loaded default users — login works immediately without waiting for Firebase
+        const DEFAULT_USERS = [
+            { username: "admin", password: "admin123", role: "developer" },
+            { username: "headmaster", password: "school123", role: "school_admin" },
+            { username: "teacher_b7", password: "class123", role: "class_teacher", assignedClass: "Basic 7" },
+            { username: "math_teacher", password: "math123", role: "subject_teacher", assignedSubject: "Mathematics" }
+        ];
+
         let appData = {
-            config: { schoolName: "GBAWE GONSE M/A BASIC SCHOOL", term: "Term 1, 2025/2026" },
-            users: [
-                { username: "admin", password: "admin123", role: "developer" },
-                { username: "headmaster", password: "school123", role: "school_admin" },
-                { username: "teacher_b7", password: "class123", role: "class_teacher", assignedClass: "Basic 7" },
-                { username: "math_teacher", password: "math123", role: "subject_teacher", assignedSubject: "Mathematics" }
-            ],
-            roster: {},       // Structure: { "Basic 7": [{id, name, gender}], "Basic 8": [...] }
-            scores: {},       // Structure: { "Basic 7": { "Mathematics": { "GMA3...": {cat1, cat2, group, proj, exam} } } }
-            psychosocial: {}  // Structure: { "Basic 7": { "GMA3...": {attendance, conduct, attitude, interest, remark} } }
+            config: { schoolName: "GBAWE GONSE M/A BASIC SCHOOL", term: "Term 1, 2025/2026", totalAttendance: 70 },
+            users: JSON.parse(JSON.stringify(DEFAULT_USERS)),
+            roster: {},
+            scores: {},
+            psychosocial: {}
         };
 
         const subjectsList = ["English Language", "Mathematics", "Science", "Social Studies", "Computing", "Creative Arts", "RME", "Ghanaian Language", "French", "Career Technology"];
@@ -296,48 +343,75 @@
         const interestList = ["Reading", "Sports", "Singing", "Dancing", "Drawing", "Writing", "ICT & Coding", "Leadership"];
 
         // ==========================================
-        // AUTHENTICATION & INITIALIZATION
+        // INITIALIZATION
         // ==========================================
         function initApp() {
+            // Check for existing session
             const savedUser = sessionStorage.getItem('leon_sba_user');
             if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                showApp();
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    showApp();
+                } catch(e) {
+                    sessionStorage.removeItem('leon_sba_user');
+                }
             }
             
-            // Load data from Firebase
+            // Listen to Firebase for live updates (after login)
             db.collection("sba_system").doc("main_data").onSnapshot((doc) => {
                 if (doc.exists) {
                     const cloudData = doc.data();
-                    // Merge cloud data, ensuring nested objects exist
-                    appData.roster = cloudData.roster || {};
-                    appData.scores = cloudData.scores || {};
-                    appData.psychosocial = cloudData.psychosocial || {};
-                    if(cloudData.users) appData.users = cloudData.users;
-                    if(cloudData.config) appData.config = cloudData.config;
+                    appData.roster = cloudData.roster || appData.roster;
+                    appData.scores = cloudData.scores || appData.scores;
+                    appData.psychosocial = cloudData.psychosocial || appData.psychosocial;
+                    if (cloudData.users && cloudData.users.length > 0) {
+                        appData.users = cloudData.users;
+                    }
+                    if (cloudData.config) appData.config = cloudData.config;
+                    firebaseReady = true;
                     
                     if (currentUser) {
-                        applyRoleRestrictions();
                         refreshCurrentView();
                     }
+                } else {
+                    // First time — save defaults to cloud
+                    saveToCloud();
+                    firebaseReady = true;
                 }
+            }, (error) => {
+                console.log("Cloud sync offline, using local data:", error);
+                firebaseReady = true;
             });
         }
 
+        // ==========================================
+        // AUTHENTICATION
+        // ==========================================
         function handleLogin(e) {
             e.preventDefault();
             const u = document.getElementById('login-username').value.trim();
             const p = document.getElementById('login-password').value.trim();
+            const btn = document.getElementById('login-btn');
+            const err = document.getElementById('login-error');
             
-            const user = appData.users.find(x => x.username === u && x.password === p);
-            if (user) {
-                currentUser = user;
-                sessionStorage.setItem('leon_sba_user', JSON.stringify(user));
-                document.getElementById('login-error').classList.add('hidden');
-                showApp();
-            } else {
-                document.getElementById('login-error').classList.remove('hidden');
-            }
+            btn.disabled = true;
+            btn.textContent = 'Authenticating...';
+            err.classList.add('hidden');
+            
+            // Small delay for UX
+            setTimeout(() => {
+                const user = appData.users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
+                if (user) {
+                    currentUser = user;
+                    sessionStorage.setItem('leon_sba_user', JSON.stringify(user));
+                    showToast(`Welcome, ${user.username}!`, 'success');
+                    showApp();
+                } else {
+                    err.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.textContent = 'Sign In';
+                }
+            }, 300);
         }
 
         function showApp() {
@@ -346,19 +420,28 @@
             document.getElementById('user-role-display').textContent = `Role: ${currentUser.role.replace('_', ' ').toUpperCase()}`;
             document.getElementById('welcome-username').textContent = currentUser.username;
             
-            // If class teacher, lock class selector to their assigned class
+            const classDisplay = document.getElementById('user-class-display');
+            const classSelector = document.getElementById('class-selector');
+            const subjectSelect = document.getElementById('score-subject-select');
+            
+            // Lock class for class teachers
             if (currentUser.role === 'class_teacher' && currentUser.assignedClass) {
                 currentClass = currentUser.assignedClass;
-                document.getElementById('class-selector').value = currentClass;
-                document.getElementById('class-selector').disabled = true;
+                classSelector.value = currentClass;
+                classSelector.disabled = true;
+                classDisplay.textContent = `Class: ${currentClass}`;
+                classDisplay.classList.remove('hidden');
             } else {
-                document.getElementById('class-selector').disabled = false;
+                classSelector.disabled = false;
+                classDisplay.classList.add('hidden');
             }
 
-            // If subject teacher, lock subject selector
+            // Lock subject for subject teachers
             if (currentUser.role === 'subject_teacher' && currentUser.assignedSubject) {
-                document.getElementById('score-subject-select').value = currentUser.assignedSubject;
-                document.getElementById('score-subject-select').disabled = true;
+                subjectSelect.value = currentUser.assignedSubject;
+                subjectSelect.disabled = true;
+            } else {
+                subjectSelect.disabled = false;
             }
 
             buildSidebar();
@@ -366,12 +449,16 @@
         }
 
         function logout() {
+            if (!confirm('Are you sure you want to logout?')) return;
             sessionStorage.removeItem('leon_sba_user');
             currentUser = null;
             document.getElementById('app-container').classList.add('hidden');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('login-username').value = '';
             document.getElementById('login-password').value = '';
+            document.getElementById('login-btn').disabled = false;
+            document.getElementById('login-btn').textContent = 'Sign In';
+            document.getElementById('login-error').classList.add('hidden');
         }
 
         function buildSidebar() {
@@ -386,24 +473,24 @@
                 { id: 'users', label: 'User Management', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', roles: ['developer'] }
             ];
 
-            items.forEach(item => {
+            items.forEach((item, idx) => {
                 if (item.roles.includes(currentUser.role)) {
                     const li = document.createElement('li');
                     li.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg> ${item.label}`;
                     li.onclick = () => switchView(item.id, li);
                     nav.appendChild(li);
+                    if (idx === 0) li.classList.add('active');
                 }
             });
             
-            // Auto-click first item
-            if(nav.firstChild) nav.firstChild.click();
+            if (nav.firstChild) nav.firstChild.click();
         }
 
         function switchView(viewId, liElement) {
             document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
             document.getElementById('view-' + viewId).classList.add('active');
             document.querySelectorAll('.nav-links li').forEach(el => el.classList.remove('active'));
-            if(liElement) liElement.classList.add('active');
+            if (liElement) liElement.classList.add('active');
             document.getElementById('header-title').textContent = liElement ? liElement.textContent.trim() : 'Dashboard';
             refreshCurrentView();
         }
@@ -423,22 +510,19 @@
             if (activeView === 'users') renderUsers();
         }
 
-        function saveData() {
+        function saveToCloud() {
             db.collection("sba_system").doc("main_data").set(appData).catch(err => console.error("Save error:", err));
         }
 
         // ==========================================
-        // DASHBOARD METRICS
+        // DASHBOARD
         // ==========================================
         function renderDashboard() {
             const roster = appData.roster[currentClass] || [];
             const scores = appData.scores[currentClass] || {};
-            const psycho = appData.psychosocial[currentClass] || {};
 
-            // 1. Total Students
             document.getElementById('dash-total-students').textContent = roster.length;
 
-            // 2. Subjects with Data
             let completedSubjects = 0;
             subjectsList.forEach(sub => {
                 const subScores = scores[sub] || {};
@@ -447,7 +531,6 @@
             });
             document.getElementById('dash-subjects-completed').textContent = `${completedSubjects} / 10`;
 
-            // 3. Class Average & Attendance
             let totalSum = 0; let count = 0; let attSum = 0;
             roster.forEach(s => {
                 let studentTotal = 0; let subjectsCounted = 0;
@@ -464,19 +547,20 @@
                     totalSum += (studentTotal / subjectsCounted);
                     count++;
                 }
-                const p = psycho[s.id] || {};
+                const p = (appData.psychosocial[currentClass] || {})[s.id] || {};
                 attSum += (p.attendance || 0);
             });
 
             const avg = count > 0 ? (totalSum / count).toFixed(1) : 0;
             document.getElementById('dash-class-average').textContent = avg + '%';
             
-            const avgAtt = roster.length > 0 ? ((attSum / (roster.length * 70)) * 100).toFixed(1) : 0; // Assuming 70 max days
+            const maxDays = appData.config.totalAttendance || 70;
+            const avgAtt = roster.length > 0 ? ((attSum / (roster.length * maxDays)) * 100).toFixed(1) : 0;
             document.getElementById('dash-attendance').textContent = avgAtt + '%';
         }
 
         // ==========================================
-        // ROSTER MANAGEMENT (Strictly Class-Isolated)
+        // ROSTER
         // ==========================================
         function renderRoster() {
             document.getElementById('roster-title').textContent = `${currentClass} Student Roster`;
@@ -517,9 +601,10 @@
 
                 if (!appData.roster[currentClass]) appData.roster[currentClass] = [];
                 
+                let count = 0;
                 json.forEach(row => {
                     const keys = Object.keys(row);
-                    const idKey = keys.find(k => k.toUpperCase().includes('ID'));
+                    const idKey = keys.find(k => k.toUpperCase().includes('ID') || k.toUpperCase().includes('NO'));
                     const nameKey = keys.find(k => k.toUpperCase().includes('NAME'));
                     const genderKey = keys.find(k => k.toUpperCase().includes('GENDER'));
                     
@@ -527,22 +612,21 @@
                     const name = row[nameKey] ? String(row[nameKey]).trim() : null;
                     
                     if (id && name) {
-                        // Prevent duplicates
                         if (!appData.roster[currentClass].find(s => s.id === id)) {
                             appData.roster[currentClass].push({
-                                id: id,
-                                name: name,
+                                id: id, name: name,
                                 gender: row[genderKey] ? String(row[genderKey]).trim() : 'Male'
                             });
-                            // Initialize psychosocial
                             if (!appData.psychosocial[currentClass]) appData.psychosocial[currentClass] = {};
-                            appData.psychosocial[currentClass][id] = { attendance: 70, conduct: "Respectful", attitude: "Hardworking", interest: "Reading", remark: "" };
+                            appData.psychosocial[currentClass][id] = { attendance: appData.config.totalAttendance || 70, conduct: "Respectful", attitude: "Hardworking", interest: "Reading", remark: "" };
+                            count++;
                         }
                     }
                 });
-                saveData();
+                saveToCloud();
                 renderRoster();
-                alert(`Successfully imported to ${currentClass}!`);
+                renderDashboard();
+                showToast(`Imported ${count} students to ${currentClass}`, 'success');
             };
             reader.readAsArrayBuffer(file);
             event.target.value = '';
@@ -555,8 +639,10 @@
             subjectsList.forEach(sub => {
                 if (appData.scores[currentClass]?.[sub]) delete appData.scores[currentClass][sub][id];
             });
-            saveData();
+            saveToCloud();
             renderRoster();
+            renderDashboard();
+            showToast('Student deleted', 'info');
         }
 
         function downloadRosterTemplate() {
@@ -566,8 +652,37 @@
             XLSX.writeFile(wb, `Roster_Template_${currentClass.replace(' ','_')}.xlsx`);
         }
 
+        function openAddStudentModal() {
+            document.getElementById('add-student-modal').classList.remove('hidden');
+            document.getElementById('new-student-id').value = '';
+            document.getElementById('new-student-name').value = '';
+            document.getElementById('new-student-gender').value = '';
+        }
+        function closeAddStudentModal() {
+            document.getElementById('add-student-modal').classList.add('hidden');
+        }
+        function handleAddStudent(e) {
+            e.preventDefault();
+            const id = document.getElementById('new-student-id').value.trim();
+            const name = document.getElementById('new-student-name').value.trim();
+            const gender = document.getElementById('new-student-gender').value;
+            if (!appData.roster[currentClass]) appData.roster[currentClass] = [];
+            if (appData.roster[currentClass].find(s => s.id === id)) {
+                showToast('Student ID already exists', 'error');
+                return;
+            }
+            appData.roster[currentClass].push({ id, name, gender });
+            if (!appData.psychosocial[currentClass]) appData.psychosocial[currentClass] = {};
+            appData.psychosocial[currentClass][id] = { attendance: appData.config.totalAttendance || 70, conduct: "Respectful", attitude: "Hardworking", interest: "Reading", remark: "" };
+            saveToCloud();
+            renderRoster();
+            renderDashboard();
+            closeAddStudentModal();
+            showToast('Student added successfully', 'success');
+        }
+
         // ==========================================
-        // SCORES MANAGEMENT (Strictly Class & Subject Isolated)
+        // SCORES
         // ==========================================
         function loadScoresForSubject() {
             const subject = document.getElementById('score-subject-select').value;
@@ -587,7 +702,6 @@
             if (!appData.scores[currentClass]) appData.scores[currentClass] = {};
             if (!appData.scores[currentClass][subject]) appData.scores[currentClass][subject] = {};
 
-            // Calculate ranks
             const scoresList = roster.map(s => {
                 const sc = appData.scores[currentClass][subject][s.id] || {};
                 const raw = (sc.cat1||0) + (sc.cat2||0) + (sc.group||0) + (sc.proj||0);
@@ -636,14 +750,14 @@
             let num = parseFloat(val);
             if (isNaN(num) || num < 0) num = 0;
             if (num > max) {
-                alert(`Maximum limit for this field is ${max}`);
-                loadScoresForSubject(); // reset UI
+                showToast(`Maximum limit is ${max}`, 'error');
+                loadScoresForSubject();
                 return;
             }
             if (!appData.scores[currentClass][subject][studentId]) appData.scores[currentClass][subject][studentId] = {};
             appData.scores[currentClass][subject][studentId][field] = num;
-            saveData();
-            loadScoresForSubject(); // recalculate and re-render
+            saveToCloud();
+            loadScoresForSubject();
         }
 
         function importScores(event) {
@@ -675,9 +789,9 @@
                         count++;
                     }
                 });
-                saveData();
+                saveToCloud();
                 loadScoresForSubject();
-                alert(`Imported scores for ${count} students in ${currentClass} - ${subject}`);
+                showToast(`Imported scores for ${count} students`, 'success');
             };
             reader.readAsArrayBuffer(file);
             event.target.value = '';
@@ -691,11 +805,11 @@
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Scores");
-            XLSX.writeFile(wb, `Scores_Template_${currentClass.replace(' ','_')}_${subject.replace(' ','_')}.xlsx`);
+            XLSX.writeFile(wb, `Scores_${currentClass.replace(' ','_')}_${subject.replace(' ','_')}.xlsx`);
         }
 
         // ==========================================
-        // PSYCHOSOCIAL & REPORTS (Simplified for brevity, fully functional)
+        // PSYCHOSOCIAL
         // ==========================================
         function renderPsychosocial() {
             const roster = appData.roster[currentClass] || [];
@@ -712,7 +826,7 @@
             if (!appData.psychosocial[currentClass]) appData.psychosocial[currentClass] = {};
 
             roster.forEach((s, idx) => {
-                const p = appData.psychosocial[currentClass][s.id] || { attendance: 70, conduct: "Respectful", attitude: "Hardworking", interest: "Reading", remark: "" };
+                const p = appData.psychosocial[currentClass][s.id] || { attendance: appData.config.totalAttendance || 70, conduct: "Respectful", attitude: "Hardworking", interest: "Reading", remark: "" };
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${idx + 1}</td>
@@ -721,7 +835,7 @@
                     <td><select onchange="updatePsycho('${s.id}', 'conduct', this.value)">${conductList.map(c=>`<option ${p.conduct===c?'selected':''}>${c}</option>`).join('')}</select></td>
                     <td><select onchange="updatePsycho('${s.id}', 'attitude', this.value)">${attitudeList.map(a=>`<option ${p.attitude===a?'selected':''}>${a}</option>`).join('')}</select></td>
                     <td><select onchange="updatePsycho('${s.id}', 'interest', this.value)">${interestList.map(i=>`<option ${p.interest===i?'selected':''}>${i}</option>`).join('')}</select></td>
-                    <td><input type="text" value="${p.remark}" onchange="updatePsycho('${s.id}', 'remark', this.value)" class="w-full text-left"></td>
+                    <td><input type="text" value="${p.remark||''}" onchange="updatePsycho('${s.id}', 'remark', this.value)" class="w-full text-left"></td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -731,9 +845,12 @@
             if (!appData.psychosocial[currentClass]) appData.psychosocial[currentClass] = {};
             if (!appData.psychosocial[currentClass][id]) appData.psychosocial[currentClass][id] = {};
             appData.psychosocial[currentClass][id][field] = field === 'attendance' ? parseInt(val) : val;
-            saveData();
+            saveToCloud();
         }
 
+        // ==========================================
+        // REPORTS
+        // ==========================================
         function renderReportDropdown() {
             const sel = document.getElementById('report-student-select');
             sel.innerHTML = '<option value="">-- Select Student --</option>';
@@ -745,16 +862,57 @@
         function generateReport() {
             const id = document.getElementById('report-student-select').value;
             if (!id) { document.getElementById('print-container').innerHTML = ''; return; }
-            // (Report generation logic remains similar to previous version, pulling from appData.scores[currentClass] and appData.psychosocial[currentClass][id])
-            document.getElementById('print-container').innerHTML = `<div class="p-8 border-2 border-black"><h2 class="text-center text-2xl font-bold mb-4">${appData.config.schoolName}</h2><h3 class="text-center mb-4">TERM REPORT: ${currentClass}</h3><p>Student ID: ${id}</p><p><i>(Full report card rendering logic integrated here, pulling strictly from ${currentClass} data)</i></p></div>`;
+            const student = (appData.roster[currentClass] || []).find(s => s.id === id);
+            if (!student) return;
+            
+            const psycho = (appData.psychosocial[currentClass] || {})[id] || {};
+            const scores = appData.scores[currentClass] || {};
+            
+            let rows = '';
+            let totalSum = 0;
+            subjectsList.forEach((sub, idx) => {
+                const sc = scores[sub]?.[id] || {};
+                const raw = (sc.cat1||0) + (sc.cat2||0) + (sc.group||0) + (sc.proj||0);
+                const class50 = ((raw / 60) * 50).toFixed(1);
+                const exam50 = (((sc.exam||0) / 100) * 50).toFixed(1);
+                const total = (parseFloat(class50) + parseFloat(exam50)).toFixed(1);
+                totalSum += parseFloat(total);
+                let grade = 9;
+                if (total >= 80) grade = 1; else if (total >= 70) grade = 2; else if (total >= 60) grade = 3;
+                else if (total >= 55) grade = 4; else if (total >= 50) grade = 5; else if (total >= 45) grade = 6;
+                else if (total >= 40) grade = 7; else if (total >= 35) grade = 8;
+                rows += `<tr><td class="text-left pl-2">${idx+1}. ${sub}</td><td>${class50}</td><td>${exam50}</td><td><b>${total}</b></td><td><b>${grade}</b></td></tr>`;
+            });
+            
+            document.getElementById('print-container').innerHTML = `
+                <div class="p-8 border-2 border-black bg-white">
+                    <h2 class="text-center text-2xl font-bold mb-2">${appData.config.schoolName}</h2>
+                    <p class="text-center mb-4">${appData.config.term} | Class: ${currentClass}</p>
+                    <div class="mb-4 p-3 bg-gray-100 rounded">
+                        <p><b>Name:</b> ${student.name} | <b>ID:</b> ${student.id} | <b>Gender:</b> ${student.gender}</p>
+                        <p><b>Attendance:</b> ${psycho.attendance || 0} | <b>Conduct:</b> ${psycho.conduct || '-'} | <b>Attitude:</b> ${psycho.attitude || '-'}</p>
+                    </div>
+                    <table><thead><tr><th>Subject</th><th>Class (50%)</th><th>Exam (50%)</th><th>Total</th><th>Grade</th></tr></thead><tbody>${rows}</tbody></table>
+                    <p class="mt-4"><b>Total Score:</b> ${totalSum.toFixed(1)} / ${subjectsList.length * 100}</p>
+                </div>
+            `;
         }
 
         function printBulkReports() {
-            alert("Bulk print triggered for " + currentClass + ". (Full implementation renders all students sequentially)");
+            const roster = appData.roster[currentClass] || [];
+            if (roster.length === 0) { showToast('No students to print', 'error'); return; }
+            let html = '';
+            roster.forEach(s => {
+                document.getElementById('report-student-select').value = s.id;
+                generateReport();
+                html += document.getElementById('print-container').innerHTML;
+            });
+            document.getElementById('print-container').innerHTML = html;
+            window.print();
         }
 
         // ==========================================
-        // USER MANAGEMENT (Developer Only)
+        // USER MANAGEMENT
         // ==========================================
         function renderUsers() {
             const tbody = document.querySelector('#users-table tbody');
@@ -776,21 +934,46 @@
             const u = document.getElementById('new-user-name').value.trim();
             const p = document.getElementById('new-user-pass').value.trim();
             const r = document.getElementById('new-user-role').value;
-            if (!u || !p) return alert("Fill all fields");
+            const cls = document.getElementById('assign-class').value.trim();
+            const subj = document.getElementById('assign-subject').value.trim();
+            if (!u || !p) { showToast('Fill username and password', 'error'); return; }
+            if (appData.users.find(x => x.username === u)) { showToast('Username already exists', 'error'); return; }
             
-            appData.users.push({ username: u, password: p, role: r });
-            saveData();
+            const newUser = { username: u, password: p, role: r };
+            if (cls) newUser.assignedClass = cls;
+            if (subj) newUser.assignedSubject = subj;
+            
+            appData.users.push(newUser);
+            saveToCloud();
             renderUsers();
             document.getElementById('new-user-name').value = '';
             document.getElementById('new-user-pass').value = '';
+            document.getElementById('assign-class').value = '';
+            document.getElementById('assign-subject').value = '';
+            showToast(`User "${u}" created`, 'success');
         }
 
         function deleteUser(idx) {
-            if (confirm("Delete this user?")) {
-                appData.users.splice(idx, 1);
-                saveData();
-                renderUsers();
-            }
+            if (!confirm('Delete this user?')) return;
+            appData.users.splice(idx, 1);
+            saveToCloud();
+            renderUsers();
+            showToast('User deleted', 'info');
+        }
+
+        // ==========================================
+        // TOAST NOTIFICATIONS
+        // ==========================================
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
 
         // Start
