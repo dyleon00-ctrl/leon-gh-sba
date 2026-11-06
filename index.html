@@ -57,6 +57,7 @@
                 const user = users[username];
                 if (user && user.password === password) {
                     sessionStorage.setItem('leon_sba_user', JSON.stringify({ username: username, role: user.role, name: user.name, class: user.class || null, subject: user.subject || null }));
+                    // GitHub Pages uses subfolder path
                     window.location.href = 'app.html';
                 } else {
                     btn.disabled = false;
