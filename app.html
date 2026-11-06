@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LEON GH SBA - School Based Assessment System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<style>
+:root { --primary: #0d47a1; --primary-light: #1976d2; --accent: #f57c00; --bg: #f4f6f8; }
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+body { background: var(--bg); color: #333; height: 100vh; overflow: hidden; }
+.bg-primary { background-color: var(--primary); }
+.bg-primary-light { background-color: var(--primary-light); }
+.text-primary { color: var(--primary); }
+
+.app-container { display: flex; height: 100vh; }
+sidebar { width: 260px; background: var(--primary); color: white; display: flex; flex-direction: column; box-shadow: 3px 0 10px rgba(0,0,0,0.1); }
+.brand { padding: 20px; font-size: 1.2rem; font-weight: bold; background: rgba(0,0,0,0.2); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.nav-links { list-style: none; padding: 15px 0; overflow-y: auto; flex: 1; }
+.nav-links li { padding: 13px 20px; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; gap: 14px; font-size: 0.93rem; }
+.nav-links li:hover, .nav-links li.active { background: rgba(255,255,255,0.15); border-left: 4px solid var(--accent); }
+
+main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+header { background: white; padding: 15px 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+.content-area { flex: 1; padding: 25px; overflow-y: auto; display: none; }
+.content-area.active { display: block; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; background: white; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+th { background: #e3f2fd; color: var(--primary); font-weight: 600; }
+input, select { width: 100%; padding: 7px; border: 1px solid #ccc; border-radius: 4px; text-align: center; }
+input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 4px rgba(13,71,161,0.2); }
+
+.btn { background: var(--primary); color: white; border: none; padding: 10px 16px; border-radius: 5px; cursor: pointer; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
+.btn:hover { background: #0b3c8c; }
+.btn-accent { background: var(--accent); }
+.btn-accent:hover { background: #d96d00; }
+.btn-danger { background: #c62828; }
+.btn-secondary { background: #555; }
+
+.heat-green { background-color: #d4edda !important; color: #155724; font-weight: bold; }
+.heat-yellow { background-color: #fff3cd !important; color: #856404; }
+.heat-orange { background-color: #ffe8d6 !important; color: #b33900; }
+.heat-red { background-color: #f8d7da !important; color: #721c24; font-weight: bold; }
+
+.toast { position: fixed; top: 20px; right: 20px; padding: 14px 22px; border-radius: 8px; color: white; font-weight: 600; z-index: 1000; animation: slideIn 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+@keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.toast-success { background: #10b981; }
+.toast-error { background: #ef4444; }
+.toast-info { background: #3b82f6; }
+
+@media print {
+  body * { visibility: hidden; }
+  #print-container, #print-container * { visibility: visible; }
+  #print-container { position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 20px; }
+  .no-print { display: none !important; }
+}
+.report-page { page-break-after: always; border: 2px solid #333; padding: 25px; margin-bottom: 30px; background: white; }
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal.hidden { display: none; }
+.modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 500px; width: 90%; }
+</style>
+</head>
+<body>
+
+<!-- INSTANT AUTH CHECK - Redirect if not logged in -->
+<script>
+(function(){
+  const user = sessionStorage.getItem('leon_sba_user');
+  if (!user) { window.location.href = 'login.html'; }
+})();
+</script>
+
+<div class="app-container">
+  <sidebar>
+    <div class="brand">
+      <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3L1 9l11 6 9-4.91V17h2V9L12 3zM5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82z"/></svg>
+      LEON GH SBA
+    </div>
+    <ul class="nav-links" id="sidebar-nav"></ul>
+    <div class="p-4 border-t border-blue-800">
+      <div class="text-xs text-blue-200 mb-2">
+        <p id="user-role-display">Role: Loading...</p>
+        <p id="user-class-display" class="hidden">Class: —</p>
+      </div>
+      <button onclick="logout()" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-sm font-semibold flex items-center justify-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        Logout
+      </button>
+    </div>
+  </sidebar>
+
+  <main>
+    <header>
+      <h2 class="text-xl font-bold text-primary" id="header-title">Dashboard</h2>
+      <div class="flex items-center gap-4">
+        <select id="class-selector" onchange="changeClass(this.value)" class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm font-medium">
+          <option value="KG 1">KG 1</option><option value="KG 2">KG 2</option>
+          <option value="Basic 1">Basic 1</option><option value="Basic 2">Basic 2</option>
+          <option value="Basic 3">Basic 3</option><option value="Basic 4">Basic 4</option>
+          <option value="Basic 5">Basic 5</option><option value="Basic 6">Basic 6</option>
+          <option value="Basic 7" selected>Basic 7</option><option value="Basic 8">Basic 8</option>
+          <option value="Basic 9">Basic 9</option>
+        </select>
+        <div class="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-green-500"></span> Cloud Synced
+        </div>
+      </div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-6">
+      
+      <!-- DASHBOARD -->
+      <div id="view-dashboard" class="content-area active">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-primary">
+            <p class="text-sm font-medium text-gray-500">Total Students Onboarded</p>
+            <p class="text-3xl font-bold text-primary mt-2" id="dash-total-students">0</p>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-accent">
+            <p class="text-sm font-medium text-gray-500">Subjects with Data</p>
+            <p class="text-3xl font-bold text-accent mt-2" id="dash-subjects-completed">0 / 10</p>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-green-500">
+            <p class="text-sm font-medium text-gray-500">Overall Class Average</p>
+            <p class="text-3xl font-bold text-green-600 mt-2" id="dash-class-average">0%</p>
+          </div>
+          <div class="bg-white p-6 rounded-xl shadow-sm border-l-4 border-purple-500">
+            <p class="text-sm font-medium text-gray-500">Avg. Attendance Rate</p>
+            <p class="text-3xl font-bold text-purple-600 mt-2" id="dash-attendance">0%</p>
+          </div>
+        </div>
+        <div class="bg-white p-8 rounded-xl shadow-sm">
+          <h3 class="text-xl font-bold text-primary mb-4">Welcome, <span id="welcome-username">User</span></h3>
+          <p class="text-gray-600">Use the sidebar to navigate. Your access is limited to your assigned role and class.</p>
+        </div>
+      </div>
+
+      <!-- ROSTER -->
+      <div id="view-roster" class="content-area">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6">
+          <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
+            <h3 class="text-xl font-bold text-primary" id="roster-title">Student Roster</h3>
+            <div class="flex gap-3">
+              <button onclick="downloadRosterTemplate()" class="btn bg-gray-600 hover:bg-gray-700">📥 Download Template</button>
+              <input type="file" id="roster-upload" accept=".xlsx,.xls" class="hidden" onchange="importRoster(event)">
+              <button onclick="document.getElementById('roster-upload').click()" class="btn btn-accent">📤 Import Roster</button>
+              <button onclick="openAddStudentModal()" class="btn">➕ Add Student</button>
+            </div>
+          </div>
+          <div id="roster-empty" class="p-12 text-center text-gray-500">No students onboarded for this class yet.</div>
+          <div id="roster-table-wrap" class="hidden overflow-x-auto">
+            <table id="roster-table"><thead><tr><th>No.</th><th>Student ID</th><th>Name</th><th>Gender</th><th>Actions</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCORES -->
+      <div id="view-scores" class="content-area">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6">
+          <div class="flex justify-between items-center mb-4 flex-wrap gap-4">
+            <div>
+              <h3 class="text-xl font-bold text-primary">Academic Scores</h3>
+              <p class="text-sm text-gray-500">Select a subject to enter or import scores.</p>
+            </div>
+            <div class="flex gap-3 items-center">
+              <select id="score-subject-select" onchange="loadScoresForSubject()" class="border p-2 rounded-lg w-48">
+                <option value="English Language">English Language</option>
+                <option value="Mathematics">Mathematics</option>
+                <option value="Science">Science</option>
+                <option value="Social Studies">Social Studies</option>
+                <option value="Computing">Computing</option>
+                <option value="Creative Arts Design">Creative Arts Design</option>
+                <option value="RME">RME</option>
+                <option value="Ghanaian Language">Ghanaian Language</option>
+                <option value="French">French</option>
+                <option value="Career Technology">Career Technology</option>
+              </select>
+              <button onclick="downloadScoreTemplate()" class="btn bg-gray-600 hover:bg-gray-700 text-xs">📥 Template</button>
+              <input type="file" id="score-upload" accept=".xlsx,.xls" class="hidden" onchange="importScores(event)">
+              <button onclick="document.getElementById('score-upload').click()" class="btn btn-accent text-xs">📤 Import</button>
+            </div>
+          </div>
+          <div id="scores-empty" class="p-12 text-center text-gray-500">No roster found. Please import students first.</div>
+          <div id="scores-table-wrap" class="hidden overflow-x-auto">
+            <table id="scores-table">
+              <thead><tr>
+                <th>No.</th><th>Name</th><th>CAT 1 (20)</th><th>CAT 2 (20)</th><th>Group (10)</th><th>Proj (10)</th><th>Exam (100)</th><th>Class (50%)</th><th>Exam (50%)</th><th>Total</th><th>Grade</th>
+              </tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PSYCHOSOCIAL -->
+      <div id="view-psychosocial" class="content-area">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6">
+          <h3 class="text-xl font-bold text-primary mb-4">Psychosocial & Attendance</h3>
+          <div id="psycho-empty" class="p-12 text-center text-gray-500">No students onboarded.</div>
+          <div id="psycho-table-wrap" class="hidden overflow-x-auto">
+            <table id="psycho-table">
+              <thead><tr><th>No.</th><th>Name</th><th>Attendance</th><th>Conduct</th><th>Attitude</th><th>Interest</th><th>Teacher's Remark</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTS -->
+      <div id="view-reports" class="content-area">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6 no-print">
+          <h3 class="text-xl font-bold text-primary mb-4">Report Card Generator</h3>
+          <div class="flex gap-4 mb-4 flex-wrap">
+            <select id="report-student-select" class="border p-2 rounded-lg w-64" onchange="generateReport()"></select>
+            <button onclick="window.print()" class="btn btn-accent">🖨️ Print Current</button>
+            <button onclick="printBulkReports()" class="btn">🖨️ Print Bulk (All)</button>
+          </div>
+        </div>
+        <div id="print-container"></div>
+      </div>
+
+      <!-- ANALYTICS -->
+      <div id="view-analytics" class="content-area">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6 no-print">
+          <h3 class="text-xl font-bold text-primary mb-4">Class Performance Analytics</h3>
+          <div class="flex gap-3 mb-4">
+            <button onclick="setAnalyticsLayout('A4','portrait')" class="btn">A4 Portrait</button>
+            <button onclick="setAnalyticsLayout('A4','landscape')" class="btn">A4 Landscape</button>
+            <button onclick="setAnalyticsLayout('A3','landscape')" class="btn btn-accent">A3 Landscape</button>
+            <button onclick="window.print()" class="btn btn-secondary">🖨️ Print</button>
+          </div>
+        </div>
+        <div id="analytics-printable" class="bg-white rounded-xl shadow-sm p-6">
+          <h2 id="analytics-heading" class="text-center text-xl font-bold text-primary mb-6">Class Overall Performance Summary</h2>
+          <div class="w-full max-w-3xl mx-auto mb-8"><canvas id="gradeChart"></canvas></div>
+          <h3 class="text-lg font-bold text-primary mb-3">Subject Performance Heatmap</h3>
+          <div class="overflow-x-auto">
+            <table id="analytics-table"><thead></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- USERS (Admin only) -->
+      <div id="view-users" class="content-area">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden p-6">
+          <h3 class="text-xl font-bold text-primary mb-4">User Management</h3>
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 bg-gray-50 p-4 rounded-lg">
+            <input type="text" id="new-user-name" placeholder="Username" class="p-2 border rounded">
+            <input type="password" id="new-user-pass" placeholder="Password" class="p-2 border rounded">
+            <select id="new-user-role" class="p-2 border rounded">
+              <option value="school_admin">School Admin</option>
+              <option value="class_teacher">Class Teacher</option>
+              <option value="subject_teacher">Subject Teacher</option>
+            </select>
+            <button onclick="addUser()" class="btn">Create User</button>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 bg-blue-50 p-4 rounded-lg">
+            <input type="text" id="assign-class" placeholder="Assigned Class (e.g., Basic 7)" class="p-2 border rounded">
+            <input type="text" id="assign-subject" placeholder="Assigned Subject (e.g., Mathematics)" class="p-2 border rounded">
+          </div>
+          <table id="users-table"><thead><tr><th>Username</th><th>Role</th><th>Class</th><th>Subject</th><th>Action</th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Add Student Modal -->
+<div id="add-student-modal" class="modal hidden">
+  <div class="modal-content">
+    <h3 class="text-2xl font-bold text-gray-800 mb-6">Add New Student</h3>
+    <form onsubmit="handleAddStudent(event)">
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Student ID</label>
+        <input type="text" id="new-student-id" required class="w-full p-3 border rounded-lg" placeholder="e.g., GMA3/B7/25/107">
+      </div>
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Full Name</label>
+        <input type="text" id="new-student-name" required class="w-full p-3 border rounded-lg" placeholder="e.g., JOHN DOE">
+      </div>
+      <div class="mb-6">
+        <label class="block text-sm font-semibold text-gray-700 mb-1">Gender</label>
+        <select id="new-student-gender" required class="w-full p-3 border rounded-lg">
+          <option value="">Select Gender</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+      </div>
+      <div class="flex gap-3">
+        <button type="submit" class="flex-1 bg-primary hover:bg-primary-light text-white font-semibold py-3 rounded-lg">Add Student</button>
+        <button type="button" onclick="closeAddStudentModal()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-3 rounded-lg">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// ==========================================
+// FIREBASE CONFIG
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyA7aiBx_WnbU9JzpUbkL5G6vjNnuG9zcg8",
+  authDomain: "leon-gh-sba.firebaseapp.com",
+  projectId: "leon-gh-sba",
+  storageBucket: "leon-gh-sba.firebasestorage.app",
+  messagingSenderId: "924803843159",
+  appId: "1:924803843159:web:1dbbbd6b539fa775cecf12"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ==========================================
+// STATE
+// ==========================================
+let currentUser = null;
+let currentClass = "Basic 7";
+let gradeChartInstance = null;
+
+const DEFAULT_USERS = [
+  { username: "admin", password: "admin123", role: "developer" },
+  { username: "headmaster", password: "school123", role: "school_admin" },
+  { username: "teacher_b7", password: "class123", role: "class_teacher", assignedClass: "Basic 7" },
+  { username: "math_teacher", password: "math123", role: "subject_teacher", assignedSubject: "Mathematics" }
+];
+
+let appData = {
+  config: { schoolName: "GBAWE GONSE M/A BASIC '3' SCHOOL", term: "Term 1, 2025/2026", totalAttendance: 70, contact: "+233 244089358", email: "gbawegonsemabasic3sch@gmail.com" },
+  users: JSON.parse(JSON.stringify(DEFAULT_USERS)),
+  roster: {},
+  scores: {},
+  psychosocial: {}
+};
+
+const subjectsList = ["English Language", "Mathematics", "Science", "Social Studies", "Computing", "Creative Arts Design", "RME", "Ghanaian Language", "French", "Career Technology"];
+const conductList = ["Respectful","Well-behaved","Calm","Humble","Obedient","Courteous","Disruptive","Quiet","Polite","Approachable (sociable)"];
+const attitudeList = ["Hardworking","Dependable","Self-motivated","Enthusiastic","Distracted","Focused","Diligent","Careless","Eager to learn","Slow","Lazy"];
+const interestList = ["Reading","Sports","Singing","Dancing","Drawing","Writing","ICT & Coding","Leadership","Drumming","Acting"];
+
+// ==========================================
+// INIT
+// ==========================================
+function initApp() {
+  const savedUser = sessionStorage.getItem('leon_sba_user');
+  if (savedUser) {
+    try { currentUser = JSON.parse(savedUser); } catch(e) { logout(); return; }
+  } else { logout(); return; }
+
+  db.collection("sba_system").doc("main_data").onSnapshot((doc) => {
+    if (doc.exists) {
+      const cloudData = doc.data();
+      appData.roster = cloudData.roster || appData.roster;
+      appData.scores = cloudData.scores || appData.scores;
+      appData.psychosocial = cloudData.psychosocial || appData.psychosocial;
+      if (cloudData.users && cloudData.users.length > 0) {
+        cloudData.users.forEach(cu => {
+          if (!appData.users.find(u => u.username === cu.username)) appData.users.push(cu);
+        });
+      }
+      if (cloudData.config) appData.config = cloudData.config;
+    }
+    if (currentUser) { showApp(); }
+  }, (err) => { console.log("Offline mode:", err); if (currentUser) showApp(); });
+}
+
+function showApp() {
+  document.getElementById('user-role-display').textContent = `Role: ${currentUser.role.replace('_',' ').toUpperCase()}`;
+  document.getElementById('welcome-username').textContent = currentUser.username;
+  
+  const classSelector = document.getElementById('class-selector');
+  const subjectSelect = document.getElementById('score-subject-select');
+  const classDisplay = document.getElementById('user-class-display');
+  
+  if (currentUser.role === 'class_teacher' && currentUser.assignedClass) {
+    currentClass = currentUser.assignedClass;
+    classSelector.value = currentClass;
+    classSelector.disabled = true;
+    classDisplay.textContent = `Class: ${currentClass}`;
+    classDisplay.classList.remove('hidden');
+  } else { classSelector.disabled = false; classDisplay.classList.add('hidden'); }
+  
+  if (currentUser.role === 'subject_teacher' && currentUser.assignedSubject) {
+    subjectSelect.value = currentUser.assignedSubject;
+    subjectSelect.disabled = true;
+  } else { subjectSelect.disabled = false; }
+  
+  buildSidebar();
+  refreshCurrentView();
+}
+
+function logout() {
+  sessionStorage.removeItem('leon_sba_user');
+  window.location.href = 'login.html';
+}
+
+function buildSidebar() {
+  const nav = document.getElementById('sidebar-nav');
+  nav.innerHTML = '';
+  const items = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', roles: ['developer','school_admin','class_teacher','subject_teacher'] },
+    { id: 'roster', label: 'Student Roster', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', roles: ['developer','school_admin','class_teacher'] },
+    { id: 'scores', label: 'Academic Scores', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01', roles: ['developer','school_admin','class_teacher','subject_teacher'] },
+    { id: 'psychosocial', label: 'Psychosocial', icon: 'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z', roles: ['developer','school_admin','class_teacher'] },
+    { id: 'reports', label: 'Report Printouts', icon: 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', roles: ['developer','school_admin','class_teacher'] },
+    { id: 'analytics', label: 'Analytics', icon: 'M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z', roles: ['developer','school_admin','class_teacher'] },
+    { id: 'users', label: 'User Management', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z', roles: ['developer'] }
+  ];
+  items.forEach((item, idx) => {
+    if (item.roles.includes(currentUser.role)) {
+      const li = document.createElement('li');
+      li.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.icon}"></path></svg> ${item.label}`;
+      li.onclick = () => switchView(item.id, li);
+      nav.appendChild(li);
+      if (idx === 0) li.classList.add('active');
+    }
+  });
+  if (nav.firstChild) nav.firstChild.click();
+}
+
+function switchView(viewId, liElement) {
+  document.querySelectorAll('.content-area').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + viewId).classList.add('active');
+  document.querySelectorAll('.nav-links li').forEach(el => el.classList.remove('active'));
+  if (liElement) liElement.classList.add('active');
+  document.getElementById('header-title').textContent = liElement ? liElement.textContent.trim() : 'Dashboard';
+  refreshCurrentView();
+}
+
+function changeClass(newClass) { currentClass = newClass; refreshCurrentView(); }
+
+function refreshCurrentView() {
+  const activeView = document.querySelector('.content-area.active')?.id.replace('view-', '');
+  if (activeView === 'dashboard') renderDashboard();
+  if (activeView === 'roster') renderRoster();
+  if (activeView === 'scores') loadScoresForSubject();
+  if (activeView === 'psychosocial') renderPsychosocial();
+  if (activeView === 'reports') renderReportDropdown();
+  if (activeView === 'analytics') renderAnalytics();
+  if (activeView === 'users') renderUsers();
+}
+
+function saveToCloud() {
+  const saveData = {
+    config: appData.config,
+    roster: appData.roster,
+    scores: appData.scores,
+    psychosocial: appData.psychosocial,
+    users: appData.users.filter(u => !DEFAULT_USERS.find(d => d.username === u.username))
+  };
+  db.collection("sba_system").doc("main_data").set(saveData).catch(err => console.error("Save error:", err));
+}
+
+// ==========================================
+// DASHBOARD
+// ==========================================
+function renderDashboard() {
+  const roster = appData.roster[currentClass] || [];
+  const scores = appData.scores[currentClass] || {};
+  document.getElementById('dash-total-students').textContent = roster.length;
+  
+  let completedSubjects = 0;
+  subjectsList.forEach(sub => {
+    const subScores = scores[sub] || {};
+    const hasData = Object.values(subScores).some(s => (s.cat1||0) + (s.cat2||0) + (s.group||0) + (s.proj||0) + (s.exam||0) > 0);
+    if (hasData) completedSubjects++;
+  });
+  document.getElementById('dash-subjects-completed').textContent = `${completedSubjects} / 10`;
+  
+  let totalSum = 0, count = 0, attSum = 0;
+  roster.forEach(s => {
+    let studentTotal = 0, subjectsCounted = 0;
+    subjectsList.forEach(sub => {
+      const sc = scores[sub]?.[s.id] || {};
+      const raw = (sc.cat1||0) + (sc.cat2||0) + (sc.group||0) + (sc.proj||0);
+      const exam = sc.exam||0;
+      if (raw > 0 || exam > 0) { studentTotal += ((raw/60)*50) + ((exam/100)*50); subjectsCounted++; }
+    });
+    if (subjectsCounted > 0) { totalSum += (studentTotal/subjectsCounted); count++; }
+    const p = (appData.psychosocial[currentClass] || {})[s.id] || {};
+    attSum += (p.attendance || 0);
+  });
+  const avg = count > 0 ? (totalSum/count).toFixed(1) : 0;
+  document.getElementById('dash-class-average').textContent = avg + '%';
+  const maxDays = appData.config.totalAttendance || 70;
+  const avgAtt = roster.length > 0 ? ((attSum/(roster.length*maxDays))*100).toFixed(1) : 0;
+  document.getElementById('dash-attendance').textContent = avgAtt + '%';
+}
+
+// ==========================================
+// ROSTER
+// ==========================================
+function renderRoster() {
+  document.getElementById('roster-title').textContent = `${currentClass} Student Roster`;
+  const roster = appData.roster[currentClass] || [];
+  const tbody = document.querySelector('#roster-table tbody');
+  tbody.innerHTML = '';
+  if (roster.length === 0) { document.getElementById('roster-empty').classList.remove('hidden'); document.getElementById('roster-table-wrap').classList.add('hidden'); return; }
+  document.getElementById('roster-empty').classList.add('hidden');
+  document.getElementById('roster-table-wrap').classList.remove('hidden');
+  roster.forEach((s, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${idx+1}</td><td class="font-mono text-xs">${s.id}</td><td class="font-semibold text-left pl-4">${s.name}</td><td><span class="px-2 py-1 rounded text-xs ${s.gender==='Female'?'bg-pink-100 text-pink-700':'bg-blue-100 text-blue-700'}">${s.gender}</span></td><td><button onclick="deleteStudent('${s.id}')" class="text-red-600 hover:text-red-800 text-sm font-bold">Delete</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function importRoster(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(sheet);
+    if (!appData.roster[currentClass]) appData.roster[currentClass] = [];
+    let count = 0;
+    json.forEach(row => {
+      const keys = Object.keys(row);
+      const idKey = keys.find(k => k.toUpperCase().includes('ID') || k.toUpperCase().includes('NO'));
+      const nameKey = keys.find(k => k.toUpperCase().includes('NAME'));
+      const genderKey = keys.find(k => k.toUpperCase().includes('GENDER'));
+      const id = row[idKey] ? String(row[idKey]).trim() : null;
+      const name = row[nameKey] ? String(row[nameKey]).trim() : null;
+      if (id && name) {
+        if (!appData.roster[currentClass].find(s => s.id === id)) {
+          appData.roster[currentClass].push({ id, name, gender: row[genderKey] ? String(row[genderKey]).trim() : 'Male' });
+          if (!appData.psychosocial[currentClass]) appData.psychosocial[currentClass] = {};
+          appData.psychosocial[currentClass][id] = { attendance: appData.config.totalAttendance || 70, conduct: "Respectful", attitude: "Hardworking", interest: "Reading", remark: "" };
+          count++;
+        }
+      }
+    });
+    saveToCloud(); renderRoster(); renderDashboard();
+    showToast(`Imported ${count} students to ${currentClass}`, 'success');
+  };
+  reader.readAsArrayBuffer(file); event.target.value = '';
+}
+
+function deleteStudent(id) {
+  if (!confirm('Delete this student?')) return;
+  appData.roster[currentClass] = appData.roster[currentClass].filter(s => s.id !== id);
+  if (appData.psychosocial[currentClass]) delete appData.psychosocial[currentClass][id];
+  subjectsList.forEach(sub => { if (appData.scores[currentClass]?.[sub]) delete appData.scores[currentClass][sub][id]; });
+  saveToCloud(); renderRoster(); renderDashboard();
+  showToast('Student deleted', 'info');
+}
+
+function downloadRosterTemplate() {
+  const ws = XLSX.utils.aoa_to_sheet([["StudentID","NAME","GENDER"],["GMA3/B7/25/001","Kwame Mensah","Male"]]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Roster");
+  XLSX.writeFile(wb, `Roster_Template_${currentClass.replace(' ','_')}.xlsx`);
+}
+
+function openAddStudentModal() { document.getElementById('add-student-modal').classList.remove('hidden'); }
+function closeAddStudentModal() { document.getElementById('add-student-modal').classList.add('hidden'); }
+
+function handleAddStudent(e) {
+  e.preventDefault();
+  const id = document.getElementById('new-student-id').value.trim();
+  const name = document.getElementById('new-student-name').value.trim();
+  const gender = document.getElementById('new-student-gender').value;
+  if (!appData.roster[currentClass]) appData.roster[currentClass] = [];
+  if (appData.roster[currentClass].find(s => s.id === id)) { showToast('Student ID already exists', 'error'); return; }
+  appData.roster[currentClass].push({ id, name, gender });
+  if (!appData.psychosocial[currentClass]) appData.psychosocial[currentClass] = {};
+  appData.psychosocial[currentClass][id] = { attendance: appData.config.totalAttendance || 70, conduct: "Respectful", attitude: "Hardworking", interest: "Reading", remark: "" };
+  saveToCloud(); renderRoster(); renderDashboard(); closeAddStudentModal();
+  showToast('Student added successfully', 'success');
+}
+
+// ==========================================
+// SCORES
+// ==========================================
+function loadScoresForSubject() {
+  const subject = document.getElementById('score-subject-select').value;
+  const roster = appData.roster[currentClass] || [];
+  const tbody = document.querySelector('#scores-table tbody');
+  tbody.innerHTML = '';
+  if (roster.length === 0) { document.getElementById('scores-empty').classList.remove('hidden'); document.getElementById('scores-table-wrap').classList.add('hidden'); return; }
+  document.getElementById('scores-empty').classList.add('hidden');
+  document.getElementById('scores-table-wrap').classList.remove('hidden');
+  if (!appData.scores[currentClass]) appData.scores[currentClass] = {};
+  if (!appData.scores[currentClass][subject]) appData.scores[currentClass][subject] = {};
+  
+  const scoresList = roster.map(s => {
+    const sc = appData.scores[currentClass][subject][s.id] || {};
+    const raw = (sc.cat1||0) + (sc.cat2||0) + (sc.group||0) + (sc.proj||0);
+    const total = ((raw/60)*50) + (((sc.exam||0)/100)*50);
+    return { id: s.id, total };
+  }).sort((a,b) => b.total - a.total);
+  
+  const ranks = {};
+  let currentRank = 1;
+  scoresList.forEach((item, idx) => {
+    if (idx > 0 && item.total < scoresList[idx-1].total) currentRank = idx + 1;
+    ranks[item.id] = currentRank;
+  });
+  
+  roster.forEach((s, idx) => {
+    const sc = appData.scores[currentClass][subject][s.id] || {};
+    const raw = (sc.cat1||0) + (sc.cat2||0) + (sc.group||0) + (sc.proj||0);
+    const class50 = ((raw/60)*50).toFixed(1);
+    const exam50 = (((sc.exam||0)/100)*50).toFixed(1);
+    const total = (parseFloat(class50) + parseFloat(exam50)).toFixed(1);
+    let grade = 9;
+    if (total >= 80) grade = 1; else if (total >= 70) grade = 2; else if (total >= 60) grade = 3;
+    else if (total >= 55) grade = 4; else if (total >= 50) grade = 5; else if (total >= 45) grade = 6;
+    else if (total >= 40) grade = 7; else if (total >= 35) grade = 8;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${idx+1}</td><td class="text-left pl-4 font-medium">${s.name}</td>
+      <td><input type="number" min="0" max="20" value="${sc.cat1||''}" onchange="updateScore('${s.id}','${subject}','cat1',this.value,20)"></td>
+      <td><input type="number" min="0" max="20" value="${sc.cat2||''}" onchange="updateScore('${s.id}','${subject}','cat2',this.value,20)"></td>
+      <td><input type="number" min="0" max="10" value="${sc.group||''}" onchange="updateScore('${s.id}','${subject}','group',this.value,10)"></td>
+      <td><input type="number" min="0" max="10" value="${sc.proj||''}" onchange="updateScore('${s.id}','${subject}','proj',this.value,10)"></td>
+      <td><input type="number" min="0" max="100" value="${sc.exam||''}" onchange="updateScore('${s.id}','${subject}','exam',this.value,100)"></td>
+      <td class="font-bold text-primary">${class50}</td><td class="font-bold text-primary">${exam50}</td>
+      <td class="font-bold text-green-700">${total}</td>
+      <td class="font-bold ${grade<=3?'text-green-600':grade<=6?'text-blue-600':'text-red-600'}">${grade}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function updateScore(studentId, subject, field, val, max) {
+  let num = parseFloat(val);
+  if (isNaN(num) || num < 0) num = 0;
+  if (num > max) { showToast(`Maximum limit is ${max}`, 'error'); loadScoresForSubject(); return; }
+  if (!appData.scores[currentClass][subject][studentId]) appData.scores[currentClass][subject][studentId] = {};
+  appData.scores[currentClass][subject][studentId][field] = num;
+  saveToCloud(); loadScoresForSubject();
+}
+
+function importScores(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const subject = document.getElementById('score-subject-select').value;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: 'array' });
+    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+    let count = 0;
+    json.forEach(row => {
+      const keys = Object.keys(row);
+      const nameKey = keys.find(k => k.toUpperCase().includes('NAME'));
+      const name = row[nameKey] ? String(row[nameKey]).trim().toLowerCase() : '';
+      const student = (appData.roster[currentClass] || []).find(s => s.name.toLowerCase() === name);
+      if (student) {
+        const c1 = Math.min(20, Math.max(0, parseFloat(row[keys.find(k=>k.toUpperCase().includes('CAT 1'))]) || 0));
+        const c2 = Math.min(20, Math.max(0, parseFloat(row[keys.find(k=>k.toUpperCase().includes('CAT 2'))]) || 0));
+        const gw = Math.min(10, Math.max(0, parseFloat(row[keys.find(k=>k.toUpperCase().includes('GROUP'))]) || 0));
+        const pr = Math.min(10, Math.max(0, parseFloat(row[keys.find(k=>k.toUpperCase().includes('PROJ'))]) || 0));
+        const ex = Math.min(100, Math.max(0, parseFloat(row[keys.find(k=>k.toUpperCase().includes('EXAM'))]) || 0));
+        if (!appData.scores[currentClass]) appData.scores[currentClass] = {};
+        if (!appData.scores[currentClass][subject]) appData.scores[currentClass][subject] = {};
+        appData.scores[currentClass][subject][student.id] = { cat1: c1, cat2: c2, group: gw, proj: pr, exam: ex };
+        count++;
+      }
+    });
+    saveToCloud(); loadScoresForSubject();
+    showToast(`Imported scores for ${count} students`, 'success');
+  };
+  reader.readAsArrayBuffer(file); event.target.value = '';
+}
+
+function downloadScoreTemplate() {
+  const subject = document.getElementById('score-subject-select').value;
+  const roster = appData.roster[currentClass] || [];
+  const data = [["NAME","CAT 1 (20)","CAT 2 (20)","GROUP (10)","PROJ (10)","EXAM (100)"]];
+  roster.forEach(s => data.push([s.name,0,0,0,0,0]));
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Scores");
+  XLSX.writeFile(wb, `Scores_${currentClass.replace(' ','_')}_${subject.replace(' ','_')}.xlsx`);
+}
+
+// ==========================================
+// PSYCHOSOCIAL
+// ==========================================
+function renderPsychosocial() {
+  const roster = appData.roster[currentClass] || [];
+  const tbody = document.querySelector('#psycho-table tbody');
+  tbody.innerHTML = '';
+  if (roster.length === 0) { document.getElementById('psycho-empty').classList.remove('hidden'); document.getElementById('psycho-table-wrap').classList.add('hidden'); return; }
+  document.getElementById('psycho-empty').classList.add('hidden');
+  document.getElementById('psycho-table-wrap').classList.remove('hidden');
+  if (!appData.psychosocial[currentClass]) appData.psychosocial[currentClass] = {};
+  roster.forEach((s, idx) => {
+    const p = appData.psychosocial[currentClass][s.id] || { attendance: appData.config.totalAttendance || 70, conduct: "Respectful", attitude: "Hardworking", interest: "Reading", remark: "" };
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${idx+1}</td><td class="text-left pl-4 font-medium">${s.name}</td>
+      <td><input type="number" value="${p.attendance}" onchange="updatePsycho('${s.id}','attendance',this.value)" class="w-16"></td>
+      <td><select onchange="updatePsycho('${s.id}','conduct',this.value)">${conductList.map(c=>`<option ${p.conduct===c?'selected':''}>${c}</option>`).join('')}</select></td>
+      <td><select onchange="updatePsycho('${s.id}','attitude',this.value)">${attitudeList.map(a=>`<option ${p.attitude===a?'selected':''}>${a}</option>`).join('')}</select></td>
+      <td><select onchange="updatePsycho('${s.id}','interest',this.value)">${interestList.map(i=>`<option ${p.interest===i?'selected':''}>${i}</option>`).join('')}</select></td>
+      <td><input type="text" value="${p.remark||''}" onchange="updatePsycho('${s.id}','remark',this.value)" class="w-full text-left"></td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function updatePsycho(id, field, val) {
+  if (!appData.psychosocial[currentClass]) appData.psychosocial[currentClass] = {};
+  if (!appData.psychosocial[currentClass][id]) appData.psychosocial[currentClass][id] = {};
+  appData.psychosocial[currentClass][id][field] = field === 'attendance' ? parseInt(val) : val;
+  saveToCloud();
+}
+
+// ==========================================
+// REPORTS
+// ==========================================
+function renderReportDropdown() {
+  const sel = document.getElementById('report-student-select');
+  sel.innerHTML = '<option value="">-- Select Student --</option>';
+  (appData.roster[currentClass] || []).forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.name}</option>`; });
+}
+
+function getBeceGrade(score) {
+  if (score >= 80) return { grade: 1, remark: "Highest" };
+  if (score >= 70) return { grade: 2, remark: "Higher" };
+  if (score >= 60) return { grade: 3, remark: "High" };
+  if (score >= 55) return { grade: 4, remark: "High Average" };
+  if (score >= 50) return { grade: 5, remark: "Average" };
+  if (score >= 45) return { grade: 6, remark: "Low Average" };
+  if (score >= 40) return { grade: 7, remark: "Low" };
+  if (score >= 35) return { grade: 8, remark: "Lower" };
+  return { grade: 9, remark: "Lowest" };
+}
+
+function getOrdinalSuffix(n) {
+  const s = ["th","st","nd","rd"], v = n % 100;
+  return s[(v-20)%10] || s[v] || s[0];
+}
+
+function getSubjectRanks(subject) {
+  const roster = appData.roster[currentClass] || [];
+  const scores = appData.scores[currentClass] || {};
+  let scoresList = roster.map(s => {
+    const sc = (scores[subject] && scores[subject][s.id]) || { cat1:0, cat2:0, group:0, proj:0, exam:0 };
+    const total = (((sc.cat1+sc.cat2+sc.group+sc.proj)/60)*50) + ((sc.exam/100)*50);
+    return { id: s.id, total };
+  });
+  scoresList.sort((a,b) => b.total - a.total);
+  let ranks = {}, currentRank = 1;
+  scoresList.forEach((item, idx) => {
+    if (idx > 0 && item.total < scoresList[idx-1].total) currentRank = idx + 1;
+    ranks[item.id] = currentRank;
+  });
+  return ranks;
+}
+
+function getOverallRanks() {
+  const roster = appData.roster[currentClass] || [];
+  const scores = appData.scores[currentClass] || {};
+  let totalsList = roster.map(s => {
+    let sum = 0;
+    subjectsList.forEach(sub => {
+      const sc = (scores[sub] && scores[sub][s.id]) || { cat1:0, cat2:0, group:0, proj:0, exam:0 };
+      sum += (((sc.cat1+sc.cat2+sc.group+sc.proj)/60)*50) + ((sc.exam/100)*50);
+    });
+    return { id: s.id, avg: sum / subjectsList.length };
+  });
+  totalsList.sort((a,b) => b.avg - a.avg);
+  let ranks = {}, currentRank = 1;
+  totalsList.forEach((item, idx) => {
+    if (idx > 0 && item.avg < totalsList[idx-1].avg) currentRank = idx + 1;
+    ranks[item.id] = currentRank;
+  });
+  return ranks;
+}
+
+function getTeacherComment(cumulativeTotal) {
+  if (cumulativeTotal >= 800) return "Outstanding performance. Keep up the excellent work!";
+  if (cumulativeTotal >= 700) return "Continue striving for excellence.";
+  if (cumulativeTotal >= 600) return "Keep pushing towards your best.";
+  if (cumulativeTotal >= 500) return "Aim to strengthen your weaker areas.";
+  if (cumulativeTotal >= 400) return "Put in greater commitment for better outcomes.";
+  if (cumulativeTotal >= 300) return "Put in more effort and seek guidance where needed.";
+  if (cumulativeTotal >= 200) return "A serious attitude toward studies is required.";
+  return "Urgent and consistent improvement is needed for future success.";
+}
+
+function generateReport() {
+  const id = document.getElementById('report-student-select').value;
+  if (!id) { document.getElementById('print-container').innerHTML = ''; return; }
+  const student = (appData.roster[currentClass] || []).find(s => s.id === id);
+  if (!student) return;
+  const psycho = (appData.psychosocial[currentClass] || {})[id] || {};
+  const scores = appData.scores[currentClass] || {};
+  const overallRanks = getOverallRanks();
+  const studentOverallPos = overallRanks[id] || 0;
+  
+  let rows = '', totalSum = 0;
+  subjectsList.forEach((sub, idx) => {
+    const sc = scores[sub]?.[id] || { cat1:0, cat2:0, group:0, proj:0, exam:0 };
+    const raw = sc.cat1 + sc.cat2 + sc.group + sc.proj;
+    const class50 = ((raw/60)*50).toFixed(1);
+    const exam50 = ((sc.exam/100)*50).toFixed(1);
+    const total = (parseFloat(class50) + parseFloat(exam50)).toFixed(1);
+    totalSum += parseFloat(total);
+    const gInfo = getBeceGrade(parseFloat(total));
+    const subjectRanks = getSubjectRanks(sub);
+    const subPos = subjectRanks[id] || 0;
+    rows += `<tr><td class="text-left pl-2">${idx+1}. ${sub}</td><td>${class50}</td><td>${exam50}</td><td><b>${total}</b></td><td><b>${gInfo.grade}</b></td><td>${gInfo.remark}</td><td><b>${subPos}${getOrdinalSuffix(subPos)}</b></td></tr>`;
+  });
+  
+  const teacherComment = getTeacherComment(totalSum);
+  document.getElementById('print-container').innerHTML = `
+    <div class="report-page">
+      <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid var(--primary);padding-bottom:10px;margin-bottom:15px;">
+        <div style="text-align:left;"><div style="font-size:2rem;">🏫</div></div>
+        <div style="text-align:center;flex:1;">
+          <h2 style="color:var(--primary);font-size:1.5rem;text-transform:uppercase;">${appData.config.schoolName}</h2>
+          <p style="font-size:0.85rem;color:#555;">P.O. BOX WJ 1030, WEIJA, GREATER ACCRA</p>
+          <p style="font-size:0.8rem;color:#666;">Contact: ${appData.config.contact} | Email: ${appData.config.email}</p>
+          <p style="font-size:0.85rem;color:#555;margin-top:5px;"><b>${appData.config.term} | Class: ${currentClass}</b></p>
+        </div>
+        <div style="text-align:right;font-size:0.8rem;"><b>LEARNER'S TERMINAL REPORT</b></div>
+      </div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;background:#e3f2fd;padding:10px;border-radius:5px;font-size:0.9rem;margin-bottom:15px;">
+        <div><b>Student Name:</b> ${student.name}</div>
+        <div><b>Gender:</b> ${student.gender}</div>
+        <div><b>Student ID:</b> ${student.id}</div>
+        <div><b>Attendance:</b> ${psycho.attendance || 0} / ${appData.config.totalAttendance}</div>
+        <div><b>Conduct:</b> ${psycho.conduct || '-'}</div>
+        <div><b>Attitude:</b> ${psycho.attitude || '-'}</div>
+        <div><b>Interest/Talent:</b> ${psycho.interest || '-'}</div>
+        <div><b>Overall Position:</b> <span style="color:var(--primary);font-weight:bold;">${studentOverallPos}${getOrdinalSuffix(studentOverallPos)} out of ${(appData.roster[currentClass]||[]).length}</span></div>
+      </div>
+      <table><thead><tr><th>Subject</th><th>Class (50%)</th><th>Exam (50%)</th><th>Total</th><th>Grade</th><th>Remark</th><th>Position</th></tr></thead><tbody>${rows}</tbody></table>
+      <div style="margin-top:15px;background:#fafafa;padding:10px;border:1px solid #ddd;border-radius:5px;font-size:0.9rem;">
+        <p><b>Total Score:</b> ${totalSum.toFixed(1)} / ${subjectsList.length * 100}</p>
+        <p style="margin-top:8px;"><b>Class Teacher's Comment:</b> ${teacherComment}</p>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:30px;font-size:0.9rem;">
+        <div><p><b>Class Teacher:</b> ___________________</p><p style="margin-top:30px;">Signature: ___________________</p></div>
+        <div><p><b>Headteacher:</b> ___________________</p><p style="margin-top:30px;">Signature & Stamp: ___________________</p></div>
+      </div>
+    </div>`;
+}
+
+function printBulkReports() {
+  const roster = appData.roster[currentClass] || [];
+  if (roster.length === 0) { showToast('No students to print', 'error'); return; }
+  let html = '';
+  roster.forEach(s => {
+    document.getElementById('report-student-select').value = s.id;
+    generateReport();
+    html += document.getElementById('print-container').innerHTML;
+  });
+  document.getElementById('print-container').innerHTML = html;
+  window.print();
+}
+
+// ==========================================
+// ANALYTICS
+// ==========================================
+function setAnalyticsLayout(size, orientation) {
+  const elem = document.getElementById('analytics-printable');
+  elem.style.width = size === 'A3' ? '1200px' : '900px';
+  elem.style.margin = '0 auto';
+  document.getElementById('analytics-heading').innerText = `Class Overall Performance Summary (${size} - ${orientation.toUpperCase()})`;
+}
+
+function renderAnalytics() {
+  let gradeCounts = { 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0 };
+  const roster = appData.roster[currentClass] || [];
+  const scores = appData.scores[currentClass] || {};
+  roster.forEach(s => {
+    subjectsList.forEach(sub => {
+      const sc = (scores[sub] && scores[sub][s.id]) || { cat1:0, cat2:0, group:0, proj:0, exam:0 };
+      const raw = sc.cat1 + sc.cat2 + sc.group + sc.proj;
+      const total = ((raw/60)*50) + ((sc.exam/100)*50);
+      const g = getBeceGrade(total).grade;
+      gradeCounts[g]++;
+    });
+  });
+  
+  const ctx = document.getElementById('gradeChart').getContext('2d');
+  if (gradeChartInstance) gradeChartInstance.destroy();
+  gradeChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Grade 1','Grade 2','Grade 3','Grade 4','Grade 5','Grade 6','Grade 7','Grade 8','Grade 9'],
+      datasets: [{
+        label: 'BECE Grade Distribution',
+        data: Object.values(gradeCounts),
+        backgroundColor: ['#0d47a1','#1565c0','#1976d2','#2196f3','#42a5f5','#ffa726','#fb8c00','#f4511e','#d32f2f']
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } } }
+  });
+  
+  const thead = document.querySelector('#analytics-table thead');
+  const tbody = document.querySelector('#analytics-table tbody');
+  let headHTML = `<tr><th>Student Name</th>`;
+  subjectsList.forEach(sub => headHTML += `<th>${sub}</th>`);
+  headHTML += `<th>Overall Avg</th></tr>`;
+  thead.innerHTML = headHTML;
+  
+  let bodyHTML = "";
+  roster.forEach(s => {
+    bodyHTML += `<tr><td style="text-align:left;font-weight:500;padding-left:10px;">${s.name}</td>`;
+    let studentTotal = 0;
+    subjectsList.forEach(sub => {
+      const sc = (scores[sub] && scores[sub][s.id]) || { cat1:0, cat2:0, group:0, proj:0, exam:0 };
+      const total = (((sc.cat1+sc.cat2+sc.group+sc.proj)/60)*50) + ((sc.exam/100)*50);
+      studentTotal += total;
+      let heatClass = "heat-red";
+      if (total >= 80) heatClass = "heat-green";
+      else if (total >= 65) heatClass = "heat-yellow";
+      else if (total >= 50) heatClass = "heat-orange";
+      bodyHTML += `<td class="${heatClass}">${total.toFixed(1)}</td>`;
+    });
+    const avg = studentTotal / subjectsList.length;
+    bodyHTML += `<td><b>${avg.toFixed(1)}%</b></td></tr>`;
+  });
+  tbody.innerHTML = bodyHTML;
+}
+
+// ==========================================
+// USER MANAGEMENT
+// ==========================================
+function renderUsers() {
+  const tbody = document.querySelector('#users-table tbody');
+  tbody.innerHTML = '';
+  appData.users.forEach((u, idx) => {
+    const isDefault = DEFAULT_USERS.find(d => d.username === u.username);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${u.username}</td><td class="uppercase font-bold text-xs">${u.role}</td><td>${u.assignedClass||'-'}</td><td>${u.assignedSubject||'-'}</td><td>${isDefault ? '<span class="text-gray-400">Protected</span>' : `<button onclick="deleteUser(${idx})" class="text-red-600 font-bold">Delete</button>`}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function addUser() {
+  const u = document.getElementById('new-user-name').value.trim();
+  const p = document.getElementById('new-user-pass').value.trim();
+  const r = document.getElementById('new-user-role').value;
+  const cls = document.getElementById('assign-class').value.trim();
+  const subj = document.getElementById('assign-subject').value.trim();
+  if (!u || !p) { showToast('Fill username and password', 'error'); return; }
+  if (appData.users.find(x => x.username === u)) { showToast('Username already exists', 'error'); return; }
+  const newUser = { username: u, password: p, role: r };
+  if (cls) newUser.assignedClass = cls;
+  if (subj) newUser.assignedSubject = subj;
+  appData.users.push(newUser);
+  saveToCloud(); renderUsers();
+  document.getElementById('new-user-name').value = '';
+  document.getElementById('new-user-pass').value = '';
+  document.getElementById('assign-class').value = '';
+  document.getElementById('assign-subject').value = '';
+  showToast(`User "${u}" created`, 'success');
+}
+
+function deleteUser(idx) {
+  const user = appData.users[idx];
+  const isDefault = DEFAULT_USERS.find(d => d.username === user.username);
+  if (isDefault) { showToast('Cannot delete default users', 'error'); return; }
+  if (!confirm('Delete this user?')) return;
+  appData.users.splice(idx, 1);
+  saveToCloud(); renderUsers();
+  showToast('User deleted', 'info');
+}
+
+// ==========================================
+// TOAST
+// ==========================================
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s ease'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+// ==========================================
+// START
+// ==========================================
+initApp();
+</script>
+</body>
+</html>
