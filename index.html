@@ -9,14 +9,13 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <style>
-        :root { --primary: #0d47a1; --primary-light: #1976d2; --accent: #f57c00; --bg-color: #f4f6f8; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-color); color: #333; height: 100vh; overflow: hidden; }
+        :root { --primary: #0d47a1; --primary-light: #1976d2; --accent: #f57c00; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: #f4f6f8; height: 100vh; overflow: hidden; }
         .bg-primary { background-color: var(--primary); }
         .bg-primary-light { background-color: var(--primary-light); }
         .text-primary { color: var(--primary); }
         
-        /* Login Screen */
         #login-screen { position: fixed; inset: 0; background: linear-gradient(135deg, #0d47a1 0%, #1565c0 100%); z-index: 50; display: flex; align-items: center; justify-content: center; }
         .login-card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 420px; }
         .login-card input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px; font-size: 15px; }
@@ -25,7 +24,6 @@
         .login-btn:hover { background: #0b3c8c; }
         .login-btn:disabled { background: #94a3b8; cursor: not-allowed; }
         
-        /* Layout */
         .app-container { display: flex; height: 100vh; }
         sidebar { width: 260px; background: var(--primary); color: white; display: flex; flex-direction: column; box-shadow: 3px 0 10px rgba(0,0,0,0.1); z-index: 10; }
         .brand { padding: 20px; font-size: 1.2rem; font-weight: bold; background: rgba(0,0,0,0.2); display: flex; align-items: center; gap: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); }
@@ -47,15 +45,6 @@
         .btn:hover { background: #0b3c8c; }
         .btn-accent { background: var(--accent); }
         .btn-accent:hover { background: #d96d00; }
-        .btn-danger { background: #c62828; }
-        .btn-danger:hover { background: #b71c1c; }
-        .btn-secondary { background: #555; }
-        .btn-secondary:hover { background: #333; }
-        
-        .heat-green { background-color: #d4edda !important; color: #155724; font-weight: bold; }
-        .heat-yellow { background-color: #fff3cd !important; color: #856404; }
-        .heat-orange { background-color: #ffe8d6 !important; color: #b33900; }
-        .heat-red { background-color: #f8d7da !important; color: #721c24; font-weight: bold; }
         
         .toast { position: fixed; top: 20px; right: 20px; padding: 14px 22px; border-radius: 8px; color: white; font-weight: 600; z-index: 1000; animation: slideIn 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
         @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -315,13 +304,12 @@
         const db = firebase.firestore();
 
         // ==========================================
-        // STATE & DEFAULT USERS
+        // STATE - DEFAULT USERS ARE HARDCODED & IMMUTABLE
         // ==========================================
         let currentUser = null;
         let currentClass = "Basic 7";
-        let firebaseReady = false;
         
-        // Pre-loaded default users — login works immediately without waiting for Firebase
+        // These users ALWAYS exist - they cannot be deleted or overwritten
         const DEFAULT_USERS = [
             { username: "admin", password: "admin123", role: "developer" },
             { username: "headmaster", password: "school123", role: "school_admin" },
@@ -331,7 +319,7 @@
 
         let appData = {
             config: { schoolName: "GBAWE GONSE M/A BASIC SCHOOL", term: "Term 1, 2025/2026", totalAttendance: 70 },
-            users: JSON.parse(JSON.stringify(DEFAULT_USERS)),
+            users: [], // Will be populated from DEFAULT_USERS + cloud
             roster: {},
             scores: {},
             psychosocial: {}
@@ -343,49 +331,63 @@
         const interestList = ["Reading", "Sports", "Singing", "Dancing", "Drawing", "Writing", "ICT & Coding", "Leadership"];
 
         // ==========================================
-        // INITIALIZATION
+        // INITIALIZATION - LOADS DEFAULTS FIRST, THEN MERGES CLOUD
         // ==========================================
         function initApp() {
+            // ALWAYS start with default users - login works immediately
+            appData.users = JSON.parse(JSON.stringify(DEFAULT_USERS));
+            
             // Check for existing session
             const savedUser = sessionStorage.getItem('leon_sba_user');
             if (savedUser) {
                 try {
                     currentUser = JSON.parse(savedUser);
-                    showApp();
+                    // Verify user still exists in defaults
+                    const stillValid = DEFAULT_USERS.find(u => u.username === currentUser.username);
+                    if (stillValid) {
+                        showApp();
+                    } else {
+                        sessionStorage.removeItem('leon_sba_user');
+                        currentUser = null;
+                    }
                 } catch(e) {
                     sessionStorage.removeItem('leon_sba_user');
                 }
             }
             
-            // Listen to Firebase for live updates (after login)
+            // Listen to Firebase for live updates
             db.collection("sba_system").doc("main_data").onSnapshot((doc) => {
                 if (doc.exists) {
                     const cloudData = doc.data();
+                    // Merge cloud data WITHOUT overwriting default users
                     appData.roster = cloudData.roster || appData.roster;
                     appData.scores = cloudData.scores || appData.scores;
                     appData.psychosocial = cloudData.psychosocial || appData.psychosocial;
-                    if (cloudData.users && cloudData.users.length > 0) {
-                        appData.users = cloudData.users;
-                    }
                     if (cloudData.config) appData.config = cloudData.config;
-                    firebaseReady = true;
+                    
+                    // Merge cloud users with defaults (add new ones, keep defaults)
+                    if (cloudData.users && Array.isArray(cloudData.users)) {
+                        cloudData.users.forEach(cu => {
+                            if (!appData.users.find(u => u.username === cu.username)) {
+                                appData.users.push(cu);
+                            }
+                        });
+                    }
                     
                     if (currentUser) {
                         refreshCurrentView();
                     }
                 } else {
-                    // First time — save defaults to cloud
+                    // First time - save defaults to cloud
                     saveToCloud();
-                    firebaseReady = true;
                 }
             }, (error) => {
                 console.log("Cloud sync offline, using local data:", error);
-                firebaseReady = true;
             });
         }
 
         // ==========================================
-        // AUTHENTICATION
+        // AUTHENTICATION - FIXED & ROBUST
         // ==========================================
         function handleLogin(e) {
             e.preventDefault();
@@ -398,20 +400,19 @@
             btn.textContent = 'Authenticating...';
             err.classList.add('hidden');
             
-            // Small delay for UX
-            setTimeout(() => {
-                const user = appData.users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
-                if (user) {
-                    currentUser = user;
-                    sessionStorage.setItem('leon_sba_user', JSON.stringify(user));
-                    showToast(`Welcome, ${user.username}!`, 'success');
-                    showApp();
-                } else {
-                    err.classList.remove('hidden');
-                    btn.disabled = false;
-                    btn.textContent = 'Sign In';
-                }
-            }, 300);
+            // Search in appData.users (which ALWAYS contains DEFAULT_USERS)
+            const user = appData.users.find(x => x.username.toLowerCase() === u.toLowerCase() && x.password === p);
+            
+            if (user) {
+                currentUser = user;
+                sessionStorage.setItem('leon_sba_user', JSON.stringify(user));
+                showToast(`Welcome, ${user.username}!`, 'success');
+                showApp();
+            } else {
+                err.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Sign In';
+            }
         }
 
         function showApp() {
@@ -424,7 +425,6 @@
             const classSelector = document.getElementById('class-selector');
             const subjectSelect = document.getElementById('score-subject-select');
             
-            // Lock class for class teachers
             if (currentUser.role === 'class_teacher' && currentUser.assignedClass) {
                 currentClass = currentUser.assignedClass;
                 classSelector.value = currentClass;
@@ -436,7 +436,6 @@
                 classDisplay.classList.add('hidden');
             }
 
-            // Lock subject for subject teachers
             if (currentUser.role === 'subject_teacher' && currentUser.assignedSubject) {
                 subjectSelect.value = currentUser.assignedSubject;
                 subjectSelect.disabled = true;
@@ -511,7 +510,15 @@
         }
 
         function saveToCloud() {
-            db.collection("sba_system").doc("main_data").set(appData).catch(err => console.error("Save error:", err));
+            // Save everything EXCEPT users (users are managed separately)
+            const saveData = {
+                config: appData.config,
+                roster: appData.roster,
+                scores: appData.scores,
+                psychosocial: appData.psychosocial,
+                users: appData.users.filter(u => !DEFAULT_USERS.find(d => d.username === u.username)) // Only save custom users
+            };
+            db.collection("sba_system").doc("main_data").set(saveData).catch(err => console.error("Save error:", err));
         }
 
         // ==========================================
@@ -918,13 +925,14 @@
             const tbody = document.querySelector('#users-table tbody');
             tbody.innerHTML = '';
             appData.users.forEach((u, idx) => {
+                const isDefault = DEFAULT_USERS.find(d => d.username === u.username);
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${u.username}</td>
                     <td class="uppercase font-bold text-xs">${u.role}</td>
                     <td>${u.assignedClass || '-'}</td>
                     <td>${u.assignedSubject || '-'}</td>
-                    <td>${u.username !== 'admin' ? `<button onclick="deleteUser(${idx})" class="text-red-600 font-bold">Delete</button>` : 'Protected'}</td>
+                    <td>${isDefault ? '<span class="text-gray-400">Protected</span>' : `<button onclick="deleteUser(${idx})" class="text-red-600 font-bold">Delete</button>`}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -954,6 +962,9 @@
         }
 
         function deleteUser(idx) {
+            const user = appData.users[idx];
+            const isDefault = DEFAULT_USERS.find(d => d.username === user.username);
+            if (isDefault) { showToast('Cannot delete default users', 'error'); return; }
             if (!confirm('Delete this user?')) return;
             appData.users.splice(idx, 1);
             saveToCloud();
